@@ -1,6 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200">
-  <circle cx="100" cy="100" r="95" fill="#1a3a5c"/>
-  <text x="100" y="75" font-family="Arial" font-size="45" fill="#c8a45c" text-anchor="middle" font-weight="bold">ديارنا</text>
-  <text x="100" y="115" font-family="Arial" font-size="16" fill="#ffffff" text-anchor="middle">للتطوير العقاري</text>
-  <path d="M70 130 L100 150 L130 130" stroke="#c8a45c" stroke-width="3" fill="none"/>
-</svg>
