@@ -54,7 +54,6 @@
     <section id="home" class="hero">
         <div class="hero-overlay"></div>
         <div class="hero-content">
-            <img src="logo.png" alt="ديارنا" class="hero-logo">
             <h1>شريكك الموثوق في عالم العقارات</h1>
             <p class="hero-tagline">بيع · شراء · استثمار · تأجير</p>
             <div class="hero-search">
@@ -131,18 +130,53 @@
             <h2 class="section-title">العقارات المتاحة</h2>
             <p class="section-subtitle">اكتشف أفضل العروض العقارية في فلسطين</p>
 
-            <!-- Sort Bar -->
+            <!-- Sort & Filter Bar -->
             <div class="sort-bar">
-                <span class="results-count" id="resultsCount">0 نتيجة</span>
-                <div class="sort-options">
-                    <label>ترتيب حسب:</label>
-                    <select id="sortBy" onchange="applySort()">
-                        <option value="newest">الأحدث</option>
-                        <option value="price-asc">السعر: من الأقل</option>
-                        <option value="price-desc">السعر: من الأعلى</option>
-                        <option value="size-desc">المساحة: من الأكبر</option>
-                        <option value="size-asc">المساحة: من الأصغر</option>
+                <div class="filter-options">
+                    <select id="filterPrice" onchange="applySort()">
+                        <option value="">كل الأسعار</option>
+                        <optgroup label="بيع">
+                            <option value="0-100000">أقل من 100,000 ₪</option>
+                            <option value="100000-300000">100,000 - 300,000 ₪</option>
+                            <option value="300000-500000">300,000 - 500,000 ₪</option>
+                            <option value="500000-1000000">500,000 - 1,000,000 ₪</option>
+                            <option value="1000000-99999999">أكثر من 1,000,000 ₪</option>
+                        </optgroup>
+                        <optgroup label="إيجار (شهري)">
+                            <option value="0-1500">أقل من 1,500 ₪/شهر</option>
+                            <option value="1500-3000">1,500 - 3,000 ₪/شهر</option>
+                            <option value="3000-5000">3,000 - 5,000 ₪/شهر</option>
+                            <option value="5000-99999999">أكثر من 5,000 ₪/شهر</option>
+                        </optgroup>
                     </select>
+                    <select id="filterSize" onchange="applySort()">
+                        <option value="">كل المساحات</option>
+                        <option value="0-100">أقل من 100 م²</option>
+                        <option value="100-150">100 - 150 م²</option>
+                        <option value="150-200">150 - 200 م²</option>
+                        <option value="200-500">200 - 500 م²</option>
+                        <option value="500-99999">أكثر من 500 م²</option>
+                    </select>
+                    <select id="filterBedrooms" onchange="applySort()">
+                        <option value="">عدد الغرف</option>
+                        <option value="1">1 غرفة</option>
+                        <option value="2">2 غرف</option>
+                        <option value="3">3 غرف</option>
+                        <option value="4">4 غرف</option>
+                        <option value="5">5+ غرف</option>
+                    </select>
+                </div>
+                <div class="sort-right">
+                    <span class="results-count" id="resultsCount">0 نتيجة</span>
+                    <div class="sort-options">
+                        <select id="sortBy" onchange="applySort()">
+                            <option value="newest">الأحدث</option>
+                            <option value="price-asc">السعر ↑</option>
+                            <option value="price-desc">السعر ↓</option>
+                            <option value="size-desc">المساحة ↓</option>
+                            <option value="size-asc">المساحة ↑</option>
+                        </select>
+                    </div>
                 </div>
             </div>
 

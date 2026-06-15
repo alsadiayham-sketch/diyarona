@@ -262,10 +262,29 @@
     window.applySort = function () { applyFiltersAndSort(); };
 
     function applyFiltersAndSort() {
+        var priceFilter = document.getElementById('filterPrice') ? document.getElementById('filterPrice').value : '';
+        var sizeFilter = document.getElementById('filterSize') ? document.getElementById('filterSize').value : '';
+        var bedroomsFilter = document.getElementById('filterBedrooms') ? document.getElementById('filterBedrooms').value : '';
+
         filteredProperties = allProperties.filter(function (p) {
             if (activeFilters.type && p.type !== activeFilters.type) return false;
             if (activeFilters.city && p.city !== activeFilters.city) return false;
             if (activeFilters.purpose && p.purpose !== activeFilters.purpose) return false;
+            if (priceFilter) {
+                var range = priceFilter.split('-');
+                var min = parseInt(range[0]); var max = parseInt(range[1]);
+                if ((p.price || 0) < min || (p.price || 0) > max) return false;
+            }
+            if (sizeFilter) {
+                var sr = sizeFilter.split('-');
+                var smin = parseInt(sr[0]); var smax = parseInt(sr[1]);
+                if ((p.size || 0) < smin || (p.size || 0) > smax) return false;
+            }
+            if (bedroomsFilter) {
+                var bed = parseInt(bedroomsFilter);
+                if (bed === 5 && (p.bedrooms || 0) < 5) return false;
+                if (bed < 5 && (p.bedrooms || 0) !== bed) return false;
+            }
             return true;
         });
 
