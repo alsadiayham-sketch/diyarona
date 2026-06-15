@@ -1,515 +1,1780 @@
 (function () {
     'use strict';
 
-    var ADMIN_USER = 'diyarona';
-    var ADMIN_PASS_HASH = '';
-    var currentTab = 'dashboard';
-    var activeChatId = null;
-    var chatMsgUnsubscribe = null;
-    var adminImageUploads = [];
+    var SESSION_KEY = 'diyarona_admin';
+    var ADMIN_USERNAME = 'diyarona';
+    var ADMIN_PASSWORD_HASH = simpleHash('5555');
 
-    // Compute password hash on load
-    ADMIN_PASS_HASH = simpleHash('5555');
+    var dashboardPropertiesUnsubscribe = null;
+    var dashboardVisitsUnsubscribe = null;
+    var dashboardChatsUnsubscribe = null;
+    var dashboardUsersUnsubscribe = null;
+    var dashboardEmployeesUnsubscribe = null;
+    var compoundsUnsubscribe = null;
+    var approvedPropertiesUnsubscribe = null;
+    var pendingPropertiesUnsubscribe = null;
+    var visitsUnsubscribe = null;
+    var chatsUnsubscribe = null;
+    var contactsUnsubscribe = null;
+    var employeesUnsubscribe = null;
+    var usersUnsubscribe = null;
+    var currentChatUnsubscribe = null;
 
-    document.addEventListener('DOMContentLoaded', function () {
-        if (sessionStorage.getItem('diyarona_admin')) {
-            showAdminPanel();
-        }
-    });
-
-    // ===== AUTH =====
-    window.adminLogin = function (e) {
-        e.preventDefault();
-        var user = document.getElementById('adminUsername').value.trim();
-        var pass = document.getElementById('adminPassword').value;
-
-        if (user === ADMIN_USER && simpleHash(pass) === ADMIN_PASS_HASH) {
-            sessionStorage.setItem('diyarona_admin', 'true');
-            showAdminPanel();
-        } else {
-            alert('بيانات الدخول غير صحيحة');
-        }
-    };
-
-    window.adminLogout = function () {
-        sessionStorage.removeItem('diyarona_admin');
-        location.reload();
-    };
-
-    function showAdminPanel() {
-        document.getElementById('employeeLoginScreen').classList.add('hidden');
-        document.getElementById('adminPanel').classList.remove('hidden');
-        loadDashboardData();
-        loadApprovedProperties();
-        loadPendingProperties();
-        loadVisitRequests();
-        loadChats();
-        loadContacts();
-        loadUsers();
-    }
-
-    // ===== TAB SWITCHING =====
-    window.switchTab = function (tab) {
-        currentTab = tab;
-        document.querySelectorAll('.tab-content').forEach(function (t) { t.classList.remove('active'); });
-        document.querySelectorAll('.nav-item').forEach(function (n) { n.classList.remove('active'); });
-        document.getElementById('tab-' + tab).classList.add('active');
-        document.querySelector('[data-tab="' + tab + '"]').classList.add('active');
-    };
-
-    // ===== DASHBOARD =====
-    function loadDashboardData() {
-        db.collection('properties').where('status', '==', 'approved').onSnapshot(function (snap) {
-            document.getElementById('dashTotalProperties').textContent = snap.size;
-        });
-        db.collection('properties').where('status', '==', 'pending').onSnapshot(function (snap) {
-            document.getElementById('dashPendingProperties').textContent = snap.size;
-            document.getElementById('pendingBadge').textContent = snap.size;
-        });
-        db.collection('visit_requests').where('status', '==', 'pending').onSnapshot(function (snap) {
-            document.getElementById('dashPendingVisits').textContent = snap.size;
-            document.getElementById('visitsBadge').textContent = snap.size;
-        });
-        db.collection('chats').onSnapshot(function (snap) {
-            var unread = 0;
-            snap.forEach(function (doc) {
-                var data = doc.data();
-                if (data.unreadByEmployee && data.unreadByEmployee > 0) unread++;
-            });
-            document.getElementById('dashActiveChats').textContent = snap.size;
-            document.getElementById('chatsBadge').textContent = unread;
-        });
-        db.collection('users').onSnapshot(function (snap) {
-            document.getElementById('dashTotalUsers').textContent = snap.size;
-        });
-    }
-
-    // ===== APPROVED PROPERTIES =====
-    function loadApprovedProperties() {
-        db.collection('properties').where('status', '==', 'approved').onSnapshot(function (snap) {
-            var tbody = document.getElementById('propertiesTableBody');
-            var html = '';
-            snap.forEach(function (doc) {
-                var p = doc.data();
-                html += '<tr>';
-                html += '<td>' + (p.title || '-') + '</td>';
-                html += '<td>' + (p.type || '-') + '</td>';
-                html += '<td>' + (p.city || '-') + '</td>';
-                html += '<td>' + formatPrice(p.price) + '</td>';
-                html += '<td>' + (p.purpose === 'إيجار' ? 'إيجار' : 'بيع') + '</td>';
-                html += '<td>';
-                html += '<button class="btn-action edit" onclick="editProperty(\'' + doc.id + '\')">تعديل</button>';
-                html += '<button class="btn-action delete" onclick="deleteProperty(\'' + doc.id + '\')">حذف</button>';
-                html += '</td></tr>';
-            });
-            tbody.innerHTML = html || '<tr><td colspan="6" style="text-align:center;padding:30px">لا توجد عقارات</td></tr>';
-        });
-    }
-
-    // ===== PENDING PROPERTIES =====
-    function loadPendingProperties() {
-        db.collection('properties').where('status', '==', 'pending').orderBy('createdAt', 'desc').onSnapshot(function (snap) {
-            var grid = document.getElementById('pendingPropertiesGrid');
-            var html = '';
-            snap.forEach(function (doc) {
-                var p = doc.data();
-                html += '<div class="admin-card">';
-                html += '<h4>' + (p.title || 'عقار بدون عنوان') + '</h4>';
-                html += '<div class="admin-card-meta">';
-                html += '<span><i class="fas fa-tag"></i> ' + (p.type || '-') + ' - ' + (p.purpose || '-') + '</span>';
-                html += '<span><i class="fas fa-map-marker-alt"></i> ' + (p.city || '-') + (p.area ? ' - ' + p.area : '') + '</span>';
-                html += '<span><i class="fas fa-money-bill"></i> ' + formatPrice(p.price) + '</span>';
-                html += '<span><i class="fas fa-ruler-combined"></i> ' + (p.size || '-') + ' م²</span>';
-                html += '<span><i class="fas fa-user"></i> ' + (p.ownerName || '-') + ' - ' + (p.ownerPhone || '-') + '</span>';
-                if (p.description) html += '<span><i class="fas fa-info-circle"></i> ' + p.description.substring(0, 100) + '</span>';
-                html += '</div>';
-                html += '<div class="admin-card-actions">';
-                html += '<button class="btn-action approve" onclick="approveProperty(\'' + doc.id + '\')"><i class="fas fa-check"></i> اعتماد</button>';
-                html += '<button class="btn-action edit" onclick="editProperty(\'' + doc.id + '\')"><i class="fas fa-edit"></i> تعديل</button>';
-                html += '<button class="btn-action delete" onclick="deleteProperty(\'' + doc.id + '\')"><i class="fas fa-trash"></i> رفض</button>';
-                html += '</div></div>';
-            });
-            grid.innerHTML = html || '<p style="text-align:center;padding:40px;color:#718096">لا توجد عقارات معلقة</p>';
-        });
-    }
-
-    window.approveProperty = function (id) {
-        if (!confirm('هل تريد اعتماد هذا العقار؟')) return;
-        db.collection('properties').doc(id).update({ status: 'approved' });
-    };
-
-    window.deleteProperty = function (id) {
-        if (!confirm('هل أنت متأكد من الحذف؟')) return;
-        db.collection('properties').doc(id).delete();
-    };
-
-    window.editProperty = function (id) {
-        db.collection('properties').doc(id).get().then(function (doc) {
-            var p = doc.data();
-            document.getElementById('editPropertyId').value = id;
-            document.getElementById('propertyModalTitle').textContent = 'تعديل العقار';
-            document.getElementById('adminPropTitle').value = p.title || '';
-            document.getElementById('adminPropType').value = p.type || 'شقة';
-            document.getElementById('adminPropPurpose').value = p.purpose || 'بيع';
-            document.getElementById('adminPropPrice').value = p.price || '';
-            document.getElementById('adminPropCity').value = p.city || 'رام الله';
-            document.getElementById('adminPropArea').value = p.area || '';
-            document.getElementById('adminPropSize').value = p.size || '';
-            document.getElementById('adminPropBedrooms').value = p.bedrooms || '';
-            document.getElementById('adminPropBathrooms').value = p.bathrooms || '';
-            document.getElementById('adminPropFloor').value = p.floor || '';
-            document.getElementById('adminPropDescription').value = p.description || '';
-            document.getElementById('adminPropImages').value = (p.images || []).join('\n');
-            // Handle rent period
-            var rentRow = document.getElementById('adminRentPeriodRow');
-            if (p.purpose === 'إيجار') {
-                rentRow.classList.remove('hidden');
-                document.getElementById('adminPropRentPeriod').value = p.rentPeriod || 'شهري';
-            } else {
-                rentRow.classList.add('hidden');
-            }
-            adminImageUploads = p.images || [];
-            renderAdminImagePreviews();
-            document.getElementById('addPropertyModal').classList.remove('hidden');
-        });
-    };
-
-    window.openAddPropertyModal = function () {
-        document.getElementById('editPropertyId').value = '';
-        document.getElementById('propertyModalTitle').textContent = 'إضافة عقار جديد';
-        document.getElementById('adminPropertyForm').reset();
-        document.getElementById('adminRentPeriodRow').classList.add('hidden');
-        adminImageUploads = [];
-        renderAdminImagePreviews();
-        document.getElementById('addPropertyModal').classList.remove('hidden');
-    };
-
-    window.closeAddPropertyModal = function () {
-        document.getElementById('addPropertyModal').classList.add('hidden');
-    };
-
-    window.toggleAdminRentPeriod = function () {
-        var purpose = document.getElementById('adminPropPurpose').value;
-        var row = document.getElementById('adminRentPeriodRow');
-        if (purpose === 'إيجار') {
-            row.classList.remove('hidden');
-        } else {
-            row.classList.add('hidden');
-        }
-    };
-
-    window.handleAdminImageUpload = function (e) {
-        var files = Array.from(e.target.files);
-        files.forEach(function (file) {
-            var reader = new FileReader();
-            reader.onload = function (ev) {
-                adminImageUploads.push(ev.target.result);
-                renderAdminImagePreviews();
-            };
-            reader.readAsDataURL(file);
-        });
-    };
-
-    function renderAdminImagePreviews() {
-        var container = document.getElementById('adminImagePreviews');
-        if (!container) return;
-        var html = '';
-        adminImageUploads.forEach(function (img) {
-            if (img.startsWith('data:') || img.startsWith('http')) {
-                html += '<img src="' + img + '" alt="">';
-            }
-        });
-        container.innerHTML = html;
-    }
-
-    window.saveAdminProperty = function (e) {
-        e.preventDefault();
-        var id = document.getElementById('editPropertyId').value;
-        var imagesText = document.getElementById('adminPropImages').value.trim();
-        var images = adminImageUploads.slice();
-        if (imagesText) {
-            imagesText.split('\n').forEach(function (url) {
-                url = url.trim();
-                if (url && images.indexOf(url) === -1) images.push(url);
-            });
-        }
-
-        var data = {
-            title: document.getElementById('adminPropTitle').value.trim(),
-            type: document.getElementById('adminPropType').value,
-            purpose: document.getElementById('adminPropPurpose').value,
-            price: parseInt(document.getElementById('adminPropPrice').value) || 0,
-            rentPeriod: document.getElementById('adminPropPurpose').value === 'إيجار' ? document.getElementById('adminPropRentPeriod').value : null,
-            city: document.getElementById('adminPropCity').value,
-            area: document.getElementById('adminPropArea').value.trim(),
-            size: parseInt(document.getElementById('adminPropSize').value) || 0,
-            bedrooms: parseInt(document.getElementById('adminPropBedrooms').value) || 0,
-            bathrooms: parseInt(document.getElementById('adminPropBathrooms').value) || 0,
-            floor: parseInt(document.getElementById('adminPropFloor').value) || 0,
-            description: document.getElementById('adminPropDescription').value.trim(),
-            images: images,
-            status: 'approved'
-        };
-
-        if (id) {
-            db.collection('properties').doc(id).update(data).then(function () {
-                closeAddPropertyModal();
-            });
-        } else {
-            data.createdAt = firebase.firestore.FieldValue.serverTimestamp();
-            data.submittedBy = 'admin';
-            db.collection('properties').add(data).then(function () {
-                closeAddPropertyModal();
-            });
-        }
-    };
-
-    // ===== VISIT REQUESTS =====
+    var currentSession = null;
+    var pendingPasswordReset = null;
+    var currentChatId = '';
+    var currentVisitsFilter = 'all';
     var allVisits = [];
-    var visitsFilter = 'all';
+    var compoundsCache = [];
+    var compoundsMap = {};
+    var approvedPropertiesCache = [];
+    var pendingPropertiesCache = [];
+    var employeesCache = [];
+    var usersCache = [];
+    var chatsCache = [];
+    var contactMessagesCache = [];
+    var compoundFileImages = [];
+    var propertyFileImages = [];
 
-    function loadVisitRequests() {
-        db.collection('visit_requests').orderBy('createdAt', 'desc').onSnapshot(function (snap) {
-            allVisits = [];
-            snap.forEach(function (doc) {
-                var data = doc.data();
-                data.id = doc.id;
-                allVisits.push(data);
-            });
-            renderVisits();
-        });
+    function el(id) {
+        return document.getElementById(id);
     }
 
-    window.filterVisits = function (filter) {
-        visitsFilter = filter;
-        document.querySelectorAll('.visit-filter').forEach(function (b) { b.classList.remove('active'); });
-        event.target.classList.add('active');
-        renderVisits();
-    };
-
-    function renderVisits() {
-        var grid = document.getElementById('visitsGrid');
-        var filtered = visitsFilter === 'all' ? allVisits : allVisits.filter(function (v) { return v.status === visitsFilter; });
-
-        var html = '';
-        filtered.forEach(function (v) {
-            var statusText = { pending: 'معلقة', accepted: 'مقبولة', completed: 'مكتملة', cancelled: 'ملغاة' };
-            html += '<div class="admin-card">';
-            html += '<h4>' + (v.propertyTitle || 'عقار') + ' <span class="status-badge ' + v.status + '">' + (statusText[v.status] || v.status) + '</span></h4>';
-            html += '<div class="admin-card-meta">';
-            html += '<span><i class="fas fa-user"></i> ' + (v.userName || '-') + '</span>';
-            html += '<span><i class="fas fa-phone"></i> ' + (v.userPhone || '-') + '</span>';
-            html += '<span><i class="fas fa-map-marker-alt"></i> ' + (v.propertyCity || '-') + '</span>';
-            if (v.scheduledDate) html += '<span><i class="fas fa-calendar"></i> ' + v.scheduledDate + ' الساعة ' + (v.scheduledTime || '') + '</span>';
-            if (v.employeeNotes) html += '<span><i class="fas fa-sticky-note"></i> ' + v.employeeNotes + '</span>';
-            var date = v.createdAt ? new Date(v.createdAt.seconds * 1000).toLocaleDateString('ar') : '-';
-            html += '<span><i class="fas fa-clock"></i> ' + date + '</span>';
-            html += '</div>';
-            html += '<div class="admin-card-actions">';
-            if (v.status === 'pending') {
-                html += '<button class="btn-action schedule" onclick="openScheduleModal(\'' + v.id + '\')"><i class="fas fa-calendar-check"></i> جدولة</button>';
-                html += '<button class="btn-action delete" onclick="cancelVisit(\'' + v.id + '\')"><i class="fas fa-times"></i> إلغاء</button>';
+    function showElement(node, shouldShow) {
+        if (!node) {
+            return;
+        }
+        if (shouldShow) {
+            if (node.classList) {
+                node.classList.remove('hidden');
             }
-            if (v.status === 'accepted') {
-                html += '<button class="btn-action complete" onclick="completeVisit(\'' + v.id + '\')"><i class="fas fa-check"></i> تمت المعاينة</button>';
-                html += '<button class="btn-action delete" onclick="cancelVisit(\'' + v.id + '\')"><i class="fas fa-times"></i> إلغاء</button>';
+            node.style.display = '';
+        } else {
+            if (node.classList) {
+                node.classList.add('hidden');
             }
-            html += '<a class="btn-action edit" href="https://wa.me/' + (v.userPhone || '').replace(/^0/, '972') + '" target="_blank"><i class="fab fa-whatsapp"></i> تواصل</a>';
-            html += '</div></div>';
-        });
-
-        grid.innerHTML = html || '<p style="text-align:center;padding:40px;color:#718096">لا توجد طلبات معاينة</p>';
+            node.style.display = 'none';
+        }
     }
 
-    window.openScheduleModal = function (visitId) {
-        document.getElementById('scheduleVisitId').value = visitId;
-        document.getElementById('scheduleModal').classList.remove('hidden');
-    };
-
-    window.closeScheduleModal = function () {
-        document.getElementById('scheduleModal').classList.add('hidden');
-    };
-
-    window.confirmSchedule = function (e) {
-        e.preventDefault();
-        var id = document.getElementById('scheduleVisitId').value;
-        var date = document.getElementById('scheduleDate').value;
-        var time = document.getElementById('scheduleTime').value;
-        var notes = document.getElementById('scheduleNotes').value.trim();
-
-        db.collection('visit_requests').doc(id).update({
-            status: 'accepted',
-            scheduledDate: date,
-            scheduledTime: time,
-            employeeNotes: notes
-        }).then(function () {
-            closeScheduleModal();
-        });
-    };
-
-    window.completeVisit = function (id) {
-        if (!confirm('هل تمت المعاينة بنجاح؟')) return;
-        db.collection('visit_requests').doc(id).update({ status: 'completed' });
-    };
-
-    window.cancelVisit = function (id) {
-        if (!confirm('هل تريد إلغاء هذا الطلب؟')) return;
-        db.collection('visit_requests').doc(id).update({ status: 'cancelled' });
-    };
-
-    // ===== CHATS =====
-    function loadChats() {
-        db.collection('chats').orderBy('lastMessageTime', 'desc').onSnapshot(function (snap) {
-            var list = document.getElementById('chatList');
-            var html = '';
-            snap.forEach(function (doc) {
-                var chat = doc.data();
-                var unread = chat.unreadByEmployee > 0;
-                html += '<div class="chat-list-item' + (doc.id === activeChatId ? ' active' : '') + '" onclick="openChatConversation(\'' + doc.id + '\')">';
-                html += '<h5>' + (chat.userName || 'مستخدم') + (unread ? ' <span class="unread-dot"></span>' : '') + '</h5>';
-                html += '<p>' + (chat.lastMessage || '') + '</p>';
-                html += '</div>';
-            });
-            list.innerHTML = html || '<p class="empty-chat-list">لا توجد محادثات</p>';
-        });
+    function setText(ids, value) {
+        var list = typeof ids === 'string' ? [ids] : ids;
+        var i;
+        for (i = 0; i < list.length; i++) {
+            if (el(list[i])) {
+                el(list[i]).textContent = value == null ? '' : String(value);
+            }
+        }
     }
 
-    window.openChatConversation = function (chatId) {
-        activeChatId = chatId;
-
-        // Mark all items and highlight active
-        document.querySelectorAll('.chat-list-item').forEach(function (item) { item.classList.remove('active'); });
-        event.currentTarget.classList.add('active');
-
-        // Show input
-        document.getElementById('chatWindowInput').classList.remove('hidden');
-
-        // Update header
-        db.collection('chats').doc(chatId).get().then(function (doc) {
-            var data = doc.data();
-            document.getElementById('chatWindowHeader').innerHTML = '<h4>' + (data.userName || 'مستخدم') + '</h4><p>' + (data.userPhone || '') + '</p>';
-        });
-
-        // Reset unread
-        db.collection('chats').doc(chatId).update({ unreadByEmployee: 0 });
-
-        // Listen to messages
-        if (chatMsgUnsubscribe) chatMsgUnsubscribe();
-        chatMsgUnsubscribe = db.collection('chats').doc(chatId).collection('messages')
-            .orderBy('timestamp', 'asc')
-            .onSnapshot(function (snap) {
-                var container = document.getElementById('chatWindowMessages');
-                var html = '';
-                snap.forEach(function (doc) {
-                    var msg = doc.data();
-                    var cls = msg.sender === 'user' ? 'from-user' : 'from-employee';
-                    var time = msg.timestamp ? formatTime(msg.timestamp.toDate()) : '';
-                    html += '<div class="chat-msg ' + cls + '">';
-                    html += '<span>' + escapeHtml(msg.text) + '</span>';
-                    html += '<span class="msg-time">' + time + '</span>';
-                    html += '</div>';
-                });
-                container.innerHTML = html;
-                container.scrollTop = container.scrollHeight;
-
-                // Mark as read by employee
-                snap.forEach(function (doc) {
-                    var msg = doc.data();
-                    if (!msg.readByEmployee) {
-                        doc.ref.update({ readByEmployee: true });
-                    }
-                });
-            });
-    };
-
-    window.sendEmployeeMessage = function () {
-        if (!activeChatId) return;
-        var input = document.getElementById('employeeChatInput');
-        var text = input.value.trim();
-        if (!text) return;
-
-        db.collection('chats').doc(activeChatId).collection('messages').add({
-            text: text,
-            sender: 'employee',
-            senderName: 'فريق المبيعات',
-            timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-            readByUser: false,
-            readByEmployee: true
-        });
-
-        db.collection('chats').doc(activeChatId).update({
-            lastMessage: text,
-            lastMessageTime: firebase.firestore.FieldValue.serverTimestamp()
-        });
-
-        input.value = '';
-    };
-
-    // ===== CONTACTS =====
-    function loadContacts() {
-        db.collection('contact_messages').orderBy('createdAt', 'desc').onSnapshot(function (snap) {
-            var tbody = document.getElementById('contactsTableBody');
-            var html = '';
-            snap.forEach(function (doc) {
-                var c = doc.data();
-                var date = c.createdAt ? new Date(c.createdAt.seconds * 1000).toLocaleDateString('ar') : '-';
-                html += '<tr>';
-                html += '<td>' + (c.name || '-') + '</td>';
-                html += '<td>' + (c.phone || '-') + '</td>';
-                html += '<td>' + (c.message || '-').substring(0, 80) + '</td>';
-                html += '<td>' + date + '</td>';
-                html += '<td><span class="status-badge ' + (c.status || 'pending') + '">' + (c.status === 'read' ? 'مقروءة' : 'جديدة') + '</span></td>';
-                html += '</tr>';
-            });
-            tbody.innerHTML = html || '<tr><td colspan="5" style="text-align:center;padding:30px">لا توجد رسائل</td></tr>';
-        });
+    function setBadge(ids, value) {
+        var list = typeof ids === 'string' ? [ids] : ids;
+        var count = parseInt(value, 10) || 0;
+        var i;
+        for (i = 0; i < list.length; i++) {
+            if (el(list[i])) {
+                el(list[i]).textContent = String(count);
+                showElement(el(list[i]), count > 0);
+            }
+        }
     }
 
-    // ===== USERS =====
-    function loadUsers() {
-        db.collection('users').orderBy('createdAt', 'desc').onSnapshot(function (snap) {
-            var tbody = document.getElementById('usersTableBody');
-            var html = '';
-            snap.forEach(function (doc) {
-                var u = doc.data();
-                var date = u.createdAt ? new Date(u.createdAt.seconds * 1000).toLocaleDateString('ar') : '-';
-                html += '<tr>';
-                html += '<td>' + (u.name || '-') + '</td>';
-                html += '<td>' + (u.phone || '-') + '</td>';
-                html += '<td>' + (u.email || '-') + '</td>';
-                html += '<td>' + date + '</td>';
-                html += '</tr>';
-            });
-            tbody.innerHTML = html || '<tr><td colspan="4" style="text-align:center;padding:30px">لا يوجد مستخدمين</td></tr>';
-        });
+    function getTrimmedValue(id) {
+        var node = el(id);
+        return node && typeof node.value === 'string' ? node.value.trim() : '';
     }
 
-    // ===== UTILITIES =====
-    function formatPrice(price) {
-        if (!price) return '0 ₪';
-        return price.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',') + ' ₪';
+    function setInputValue(id, value) {
+        if (el(id)) {
+            el(id).value = value == null ? '' : value;
+        }
     }
 
-    function formatTime(date) {
-        if (!date) return '';
-        var h = date.getHours();
-        var m = date.getMinutes();
-        return (h < 10 ? '0' + h : h) + ':' + (m < 10 ? '0' + m : m);
+    function resetForm(formId) {
+        var form = el(formId);
+        if (form) {
+            form.reset();
+        }
     }
 
-    function escapeHtml(str) {
-        var div = document.createElement('div');
-        div.textContent = str;
-        return div.innerHTML;
+    function notify(message, isError) {
+        var notice = el('adminNotice');
+        if (notice) {
+            notice.textContent = message;
+            notice.className = isError ? 'notice error' : 'notice success';
+            showElement(notice, true);
+        }
+        if (typeof window.showToast === 'function') {
+            window.showToast(message);
+        } else if (isError && typeof window.alert === 'function') {
+            window.alert(message);
+        } else if (window.console && console.log) {
+            console.log(message);
+        }
+    }
+
+    function handleError(context, error) {
+        if (window.console && console.error) {
+            console.error(context, error);
+        }
+        notify(context, true);
     }
 
     function simpleHash(str) {
         var hash = 0;
-        for (var i = 0; i < str.length; i++) {
+        var i;
+        for (i = 0; i < str.length; i++) {
             var char = str.charCodeAt(i);
             hash = ((hash << 5) - hash) + char;
             hash = hash & hash;
         }
         return 'h_' + Math.abs(hash).toString(36);
     }
+
+    function formatPrice(price) {
+        var value = parseInt(price, 10);
+        if (isNaN(value)) {
+            value = 0;
+        }
+        return value.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',') + ' ₪';
+    }
+
+    function formatTime(date) {
+        var d = toDateObject(date);
+        var hours;
+        var minutes;
+        if (!d) {
+            return '';
+        }
+        hours = d.getHours();
+        minutes = d.getMinutes();
+        return (hours < 10 ? '0' : '') + hours + ':' + (minutes < 10 ? '0' : '') + minutes;
+    }
+
+    function escapeHtml(str) {
+        var div = document.createElement('div');
+        div.textContent = str == null ? '' : String(str);
+        return div.innerHTML;
+    }
+
+    function escapeJsString(str) {
+        return String(str == null ? '' : str).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+    }
+
+    function toDateObject(value) {
+        var date;
+        if (!value) {
+            return null;
+        }
+        if (typeof value.toDate === 'function') {
+            date = value.toDate();
+        } else if (Object.prototype.toString.call(value) === '[object Date]') {
+            date = value;
+        } else {
+            date = new Date(value);
+        }
+        if (!date || isNaN(date.getTime())) {
+            return null;
+        }
+        return date;
+    }
+
+    function formatDateTime(value) {
+        var date = toDateObject(value);
+        if (!date) {
+            return '-';
+        }
+        return date.toLocaleDateString('ar-EG') + ' ' + formatTime(date);
+    }
+
+    function toIntegerOrNull(value) {
+        var parsed = parseInt(value, 10);
+        return isNaN(parsed) ? null : parsed;
+    }
+
+    function splitCsv(value) {
+        var parts = String(value || '').split(',');
+        var result = [];
+        var i;
+        for (i = 0; i < parts.length; i++) {
+            if (parts[i].trim()) {
+                result.push(parts[i].trim());
+            }
+        }
+        return result;
+    }
+
+    function splitLines(value) {
+        var parts = String(value || '').split(/\r?\n/);
+        var result = [];
+        var i;
+        for (i = 0; i < parts.length; i++) {
+            if (parts[i].trim()) {
+                result.push(parts[i].trim());
+            }
+        }
+        return result;
+    }
+
+    function generateOtp() {
+        return String(Math.floor(100000 + (Math.random() * 900000)));
+    }
+
+    function sortByUpdatedDesc(items) {
+        items.sort(function (a, b) {
+            var aDate = toDateObject(a.updatedAt || a.createdAt);
+            var bDate = toDateObject(b.updatedAt || b.createdAt);
+            var aTime = aDate ? aDate.getTime() : 0;
+            var bTime = bDate ? bDate.getTime() : 0;
+            return bTime - aTime;
+        });
+        return items;
+    }
+
+    function roleLabel(role) {
+        if (role === 'sales') {
+            return 'مبيعات';
+        }
+        if (role === 'property_manager') {
+            return 'مدير عقارات';
+        }
+        if (role === 'compound_manager') {
+            return 'مدير مجمعات';
+        }
+        if (role === 'admin') {
+            return 'مدير عام';
+        }
+        return role || '-';
+    }
+
+    function toggleFormRow(id, visible) {
+        var row = el(id);
+        if (!row) {
+            return;
+        }
+        row.style.display = visible ? '' : 'none';
+        if (row.classList) {
+            if (visible) {
+                row.classList.remove('hidden');
+            } else {
+                row.classList.add('hidden');
+            }
+        }
+    }
+
+    function applyRolePermissions() {
+        var nodes = document.querySelectorAll('[data-role-only]');
+        var i;
+        for (i = 0; i < nodes.length; i++) {
+            if (!currentSession || currentSession.role === 'admin') {
+                showElement(nodes[i], true);
+            } else {
+                showElement(nodes[i], nodes[i].getAttribute('data-role-only') === currentSession.role);
+            }
+        }
+    }
+
+    function showScreen(screen) {
+        showElement(el('loginScreen'), screen === 'login');
+        showElement(el('passwordResetScreen'), screen === 'reset');
+        showElement(el('adminApp'), screen === 'app');
+    }
+
+    function saveSession(session) {
+        currentSession = session;
+        sessionStorage.setItem(SESSION_KEY, JSON.stringify(session));
+        setText(['adminSessionName', 'currentAdminName'], session.name || session.username || '');
+        setText(['adminSessionRole', 'currentAdminRole'], roleLabel(session.role));
+        applyRolePermissions();
+    }
+
+    function restoreSession() {
+        var raw = sessionStorage.getItem(SESSION_KEY);
+        if (!raw) {
+            return false;
+        }
+        try {
+            currentSession = JSON.parse(raw);
+            if (!currentSession || !currentSession.role) {
+                sessionStorage.removeItem(SESSION_KEY);
+                currentSession = null;
+                return false;
+            }
+            saveSession(currentSession);
+            return true;
+        } catch (error) {
+            sessionStorage.removeItem(SESSION_KEY);
+            currentSession = null;
+            return false;
+        }
+    }
+
+    function clearSession() {
+        currentSession = null;
+        sessionStorage.removeItem(SESSION_KEY);
+    }
+
+    function closeActiveChatListener() {
+        if (typeof currentChatUnsubscribe === 'function') {
+            currentChatUnsubscribe();
+        }
+        currentChatUnsubscribe = null;
+    }
+
+    function clearAllRealtimeListeners() {
+        if (typeof dashboardPropertiesUnsubscribe === 'function') {
+            dashboardPropertiesUnsubscribe();
+        }
+        if (typeof dashboardVisitsUnsubscribe === 'function') {
+            dashboardVisitsUnsubscribe();
+        }
+        if (typeof dashboardChatsUnsubscribe === 'function') {
+            dashboardChatsUnsubscribe();
+        }
+        if (typeof dashboardUsersUnsubscribe === 'function') {
+            dashboardUsersUnsubscribe();
+        }
+        if (typeof dashboardEmployeesUnsubscribe === 'function') {
+            dashboardEmployeesUnsubscribe();
+        }
+        if (typeof compoundsUnsubscribe === 'function') {
+            compoundsUnsubscribe();
+        }
+        if (typeof approvedPropertiesUnsubscribe === 'function') {
+            approvedPropertiesUnsubscribe();
+        }
+        if (typeof pendingPropertiesUnsubscribe === 'function') {
+            pendingPropertiesUnsubscribe();
+        }
+        if (typeof visitsUnsubscribe === 'function') {
+            visitsUnsubscribe();
+        }
+        if (typeof chatsUnsubscribe === 'function') {
+            chatsUnsubscribe();
+        }
+        if (typeof contactsUnsubscribe === 'function') {
+            contactsUnsubscribe();
+        }
+        if (typeof employeesUnsubscribe === 'function') {
+            employeesUnsubscribe();
+        }
+        if (typeof usersUnsubscribe === 'function') {
+            usersUnsubscribe();
+        }
+        dashboardPropertiesUnsubscribe = null;
+        dashboardVisitsUnsubscribe = null;
+        dashboardChatsUnsubscribe = null;
+        dashboardUsersUnsubscribe = null;
+        dashboardEmployeesUnsubscribe = null;
+        compoundsUnsubscribe = null;
+        approvedPropertiesUnsubscribe = null;
+        pendingPropertiesUnsubscribe = null;
+        visitsUnsubscribe = null;
+        chatsUnsubscribe = null;
+        contactsUnsubscribe = null;
+        employeesUnsubscribe = null;
+        usersUnsubscribe = null;
+        closeActiveChatListener();
+    }
+
+    function touchAdminAuth(action) {
+        if (!window.rawDb || typeof window.PROJECT_ID === 'undefined') {
+            return;
+        }
+        rawDb.collection('admin_auth').doc(PROJECT_ID).set({
+            lastAction: action,
+            lastUsername: currentSession ? currentSession.username : ADMIN_USERNAME,
+            lastRole: currentSession ? currentSession.role : 'admin',
+            lastAt: firebase.firestore.FieldValue.serverTimestamp()
+        }, { merge: true }).catch(function () {
+        });
+    }
+
+    function switchTab(tab) {
+        var contents = document.querySelectorAll('.tab-content, [data-tab-content]');
+        var buttons = document.querySelectorAll('[data-tab]');
+        var i;
+        for (i = 0; i < contents.length; i++) {
+            var contentTab = contents[i].getAttribute('data-tab-content') || contents[i].id;
+            var visible = contentTab === tab || contents[i].id === tab + 'Tab';
+            showElement(contents[i], visible);
+            if (contents[i].classList) {
+                if (visible) {
+                    contents[i].classList.add('active');
+                } else {
+                    contents[i].classList.remove('active');
+                }
+            }
+        }
+        for (i = 0; i < buttons.length; i++) {
+            if (buttons[i].classList) {
+                if ((buttons[i].getAttribute('data-tab') || '') === tab) {
+                    buttons[i].classList.add('active');
+                } else {
+                    buttons[i].classList.remove('active');
+                }
+            }
+        }
+    }
+
+    function initAdminApp() {
+        clearAllRealtimeListeners();
+        showScreen('app');
+        saveSession(currentSession);
+        loadDashboardData();
+        loadCompounds();
+        loadApprovedProperties();
+        loadPendingProperties();
+        loadVisitRequests();
+        loadChats();
+        loadContacts();
+        loadEmployees();
+        loadUsers();
+        switchTab('dashboard');
+    }
+
+    function loginAdmin(event) {
+        var username;
+        var password;
+        var passwordHash;
+        if (event && typeof event.preventDefault === 'function') {
+            event.preventDefault();
+        }
+        username = getTrimmedValue('adminUsername');
+        password = getTrimmedValue('adminPassword');
+        if (!username || !password) {
+            notify('يرجى إدخال اسم المستخدم وكلمة المرور', true);
+            return;
+        }
+        passwordHash = simpleHash(password);
+        if (username === ADMIN_USERNAME && passwordHash === ADMIN_PASSWORD_HASH) {
+            saveSession({
+                id: 'admin',
+                name: 'مدير ديارونا',
+                username: ADMIN_USERNAME,
+                role: 'admin',
+                isAdmin: true
+            });
+            touchAdminAuth('login');
+            initAdminApp();
+            return;
+        }
+        db.collection('employees').where('username', '==', username).limit(1).get().then(function (snapshot) {
+            var data;
+            if (snapshot.empty) {
+                notify('بيانات الدخول غير صحيحة', true);
+                return;
+            }
+            data = snapshot.docs[0].data() || {};
+            data.id = snapshot.docs[0].id;
+            if (data.status === 'otp_reset') {
+                pendingPasswordReset = data;
+                setText(['passwordResetName', 'passwordResetEmployeeName'], data.name || data.username || '');
+                setInputValue('resetOtp', '');
+                setInputValue('resetNewPassword', '');
+                setInputValue('resetConfirmPassword', '');
+                showScreen('reset');
+                notify('يجب تعيين كلمة مرور جديدة لهذا الحساب');
+                return;
+            }
+            if (data.passwordHash !== passwordHash) {
+                notify('كلمة المرور غير صحيحة', true);
+                return;
+            }
+            saveSession({
+                id: data.id,
+                name: data.name || data.username,
+                username: data.username,
+                role: data.role || 'sales',
+                isAdmin: false
+            });
+            initAdminApp();
+        }).catch(function (error) {
+            handleError('تعذر تسجيل الدخول', error);
+        });
+    }
+
+    function submitNewPassword(event) {
+        var otp;
+        var newPassword;
+        var confirmPassword;
+        if (event && typeof event.preventDefault === 'function') {
+            event.preventDefault();
+        }
+        if (!pendingPasswordReset || !pendingPasswordReset.id) {
+            notify('لا توجد عملية إعادة تعيين نشطة', true);
+            showScreen('login');
+            return;
+        }
+        otp = getTrimmedValue('resetOtp');
+        newPassword = getTrimmedValue('resetNewPassword');
+        confirmPassword = getTrimmedValue('resetConfirmPassword');
+        if (!otp || !newPassword || !confirmPassword) {
+            notify('يرجى إكمال جميع الحقول', true);
+            return;
+        }
+        if (newPassword !== confirmPassword) {
+            notify('كلمتا المرور غير متطابقتين', true);
+            return;
+        }
+        db.collection('employees').doc(pendingPasswordReset.id).get().then(function (doc) {
+            var data;
+            if (!doc.exists) {
+                throw new Error('Employee not found');
+            }
+            data = doc.data() || {};
+            if (data.status !== 'otp_reset') {
+                notify('تم إلغاء طلب إعادة التعيين', true);
+                showScreen('login');
+                return null;
+            }
+            if (String(data.otp || '') !== otp) {
+                notify('رمز OTP غير صحيح', true);
+                return null;
+            }
+            return db.collection('employees').doc(doc.id).update({
+                passwordHash: simpleHash(newPassword),
+                status: 'active',
+                otp: firebase.firestore.FieldValue.delete(),
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            }).then(function () {
+                saveSession({
+                    id: doc.id,
+                    name: data.name || data.username,
+                    username: data.username,
+                    role: data.role || 'sales',
+                    isAdmin: false
+                });
+                pendingPasswordReset = null;
+                notify('تم تحديث كلمة المرور بنجاح');
+                initAdminApp();
+            });
+        }).catch(function (error) {
+            handleError('تعذر تحديث كلمة المرور', error);
+        });
+    }
+
+    function logoutAdmin() {
+        clearAllRealtimeListeners();
+        closeCompoundModal();
+        closeAddPropertyModal();
+        closeScheduleModal();
+        closeEmployeeModal();
+        clearSession();
+        touchAdminAuth('logout');
+        showScreen('login');
+    }
+
+    function countUnreadChats(items) {
+        var total = 0;
+        var i;
+        for (i = 0; i < items.length; i++) {
+            total += parseInt(items[i].unreadAdminCount || items[i].unreadCount || 0, 10) || 0;
+        }
+        return total;
+    }
+
+    function loadDashboardData() {
+        if (typeof dashboardPropertiesUnsubscribe === 'function') {
+            dashboardPropertiesUnsubscribe();
+        }
+        if (typeof dashboardVisitsUnsubscribe === 'function') {
+            dashboardVisitsUnsubscribe();
+        }
+        if (typeof dashboardChatsUnsubscribe === 'function') {
+            dashboardChatsUnsubscribe();
+        }
+        if (typeof dashboardUsersUnsubscribe === 'function') {
+            dashboardUsersUnsubscribe();
+        }
+        if (typeof dashboardEmployeesUnsubscribe === 'function') {
+            dashboardEmployeesUnsubscribe();
+        }
+
+        dashboardPropertiesUnsubscribe = db.collection('properties').onSnapshot(function (propertySnap) {
+            var approved = 0;
+            var pending = 0;
+            propertySnap.forEach(function (doc) {
+                var data = doc.data() || {};
+                if (data.status === 'approved') {
+                    approved += 1;
+                } else if (data.status === 'pending') {
+                    pending += 1;
+                }
+            });
+            setText(['statApprovedProperties', 'dashboardApprovedProperties'], approved);
+            setText(['statPendingProperties', 'dashboardPendingProperties'], pending);
+            setBadge(['pendingPropertiesBadge', 'sidebarPendingPropertiesBadge'], pending);
+        }, function (error) {
+            handleError('تعذر تحميل إحصائيات العقارات', error);
+        });
+
+        dashboardVisitsUnsubscribe = db.collection('visit_requests').onSnapshot(function (visitSnap) {
+            var pendingVisits = 0;
+            visitSnap.forEach(function (doc) {
+                var data = doc.data() || {};
+                if (data.status === 'pending') {
+                    pendingVisits += 1;
+                }
+            });
+            setText(['statVisitRequests', 'dashboardVisitRequests'], pendingVisits);
+            setBadge(['visitRequestsBadge', 'sidebarVisitRequestsBadge'], pendingVisits);
+        }, function (error) {
+            handleError('تعذر تحميل إحصائيات الزيارات', error);
+        });
+
+        dashboardChatsUnsubscribe = db.collection('chats').onSnapshot(function (chatSnap) {
+            var items = [];
+            chatSnap.forEach(function (doc) {
+                var data = doc.data() || {};
+                data.id = doc.id;
+                items.push(data);
+            });
+            setText(['statChats', 'dashboardChats'], items.length);
+            setText(['statUnreadChats', 'dashboardUnreadChats'], countUnreadChats(items));
+            setBadge(['chatBadge', 'sidebarChatBadge'], countUnreadChats(items));
+        }, function (error) {
+            handleError('تعذر تحميل إحصائيات المحادثات', error);
+        });
+
+        dashboardUsersUnsubscribe = db.collection('users').onSnapshot(function (userSnap) {
+            setText(['statUsers', 'dashboardUsers'], userSnap.size);
+        }, function (error) {
+            handleError('تعذر تحميل إحصائيات المستخدمين', error);
+        });
+
+        dashboardEmployeesUnsubscribe = db.collection('employees').onSnapshot(function (employeeSnap) {
+            setText(['statEmployees', 'dashboardEmployees'], employeeSnap.size);
+        }, function (error) {
+            handleError('تعذر تحميل إحصائيات الموظفين', error);
+        });
+    }
+
+    function normalizeCompound(item) {
+        item.images = Array.isArray(item.images) ? item.images : [];
+        item.amenities = Array.isArray(item.amenities) ? item.amenities : [];
+        item.order = toIntegerOrNull(item.order) || 0;
+        return item;
+    }
+
+    function populateCompoundDropdown() {
+        var select = el('adminPropertyCompound');
+        var i;
+        if (!select) {
+            return;
+        }
+        select.innerHTML = '<option value="">بدون مجمع</option>';
+        for (i = 0; i < compoundsCache.length; i++) {
+            select.innerHTML += '<option value="' + escapeHtml(compoundsCache[i].id) + '">' + escapeHtml(compoundsCache[i].name || 'مجمع') + '</option>';
+        }
+    }
+
+    function renderCompounds() {
+        var container = el('compoundsGrid');
+        var html = '';
+        var i;
+        populateCompoundDropdown();
+        if (!container) {
+            return;
+        }
+        if (!compoundsCache.length) {
+            container.innerHTML = '<div class="empty-state">لا توجد مجمعات حتى الآن</div>';
+            return;
+        }
+        for (i = 0; i < compoundsCache.length; i++) {
+            var item = compoundsCache[i];
+            var image = item.images.length ? item.images[0] : '';
+            html += '<div class="admin-card compound-card">';
+            if (image) {
+                html += '<div class="card-cover"><img src="' + escapeHtml(image) + '" alt="' + escapeHtml(item.name || '') + '"></div>';
+            }
+            html += '<div class="card-body">';
+            html += '<h3>' + escapeHtml(item.name || 'بدون اسم') + '</h3>';
+            html += '<p class="muted">' + escapeHtml((item.city || '') + (item.area ? ' - ' + item.area : '')) + '</p>';
+            html += '<p>' + escapeHtml(item.shortDescription || item.description || '') + '</p>';
+            html += '<div class="card-meta">';
+            html += '<span>الوحدات: ' + escapeHtml(item.totalUnits || 0) + '</span>';
+            html += '<span>السعر يبدأ من: ' + escapeHtml(formatPrice(item.startingPrice || 0)) + '</span>';
+            html += '</div>';
+            html += '<div class="card-actions">';
+            html += '<button type="button" onclick="editCompound(\'' + escapeJsString(item.id) + '\')">تعديل</button>';
+            html += '<button type="button" class="danger" onclick="deleteCompound(\'' + escapeJsString(item.id) + '\')">حذف</button>';
+            html += '</div></div></div>';
+        }
+        container.innerHTML = html;
+    }
+
+    function loadCompounds() {
+        if (typeof compoundsUnsubscribe === 'function') {
+            compoundsUnsubscribe();
+        }
+        compoundsUnsubscribe = db.collection('compounds').onSnapshot(function (snapshot) {
+            compoundsCache = [];
+            compoundsMap = {};
+            snapshot.forEach(function (doc) {
+                var data = normalizeCompound(doc.data() || {});
+                data.id = doc.id;
+                compoundsCache.push(data);
+                compoundsMap[doc.id] = data;
+            });
+            compoundsCache.sort(function (a, b) {
+                if (a.order !== b.order) {
+                    return a.order - b.order;
+                }
+                return String(a.name || '').localeCompare(String(b.name || ''), 'ar');
+            });
+            renderCompounds();
+            renderApprovedProperties();
+            renderPendingProperties();
+        }, function (error) {
+            handleError('تعذر تحميل المجمعات', error);
+        });
+    }
+
+    function openAddCompoundModal() {
+        resetForm('compoundForm');
+        setInputValue('compoundId', '');
+        compoundFileImages = [];
+        syncCompoundImagePreview();
+        showElement(el('compoundModal'), true);
+    }
+
+    function closeCompoundModal() {
+        showElement(el('compoundModal'), false);
+    }
+
+    function collectImages(urlInputId, fileImages) {
+        var urls = splitLines(getTrimmedValue(urlInputId));
+        var images = urls.slice(0);
+        var i;
+        for (i = 0; i < fileImages.length; i++) {
+            if (fileImages[i]) {
+                images.push(fileImages[i]);
+            }
+        }
+        return images;
+    }
+
+    function renderImagePreview(containerId, images) {
+        var container = el(containerId);
+        var html = '';
+        var i;
+        if (!container) {
+            return;
+        }
+        for (i = 0; i < images.length; i++) {
+            html += '<div class="preview-item"><img src="' + escapeHtml(images[i]) + '" alt="preview"></div>';
+        }
+        container.innerHTML = html;
+    }
+
+    function syncCompoundImagePreview() {
+        renderImagePreview('compoundImagesPreview', collectImages('compoundImageUrls', compoundFileImages));
+    }
+
+    function syncPropertyImagePreview() {
+        renderImagePreview('propertyImagesPreview', collectImages('adminPropertyImageUrls', propertyFileImages));
+    }
+
+    function readFilesAsBase64(files, callback) {
+        var results = [];
+        var index = 0;
+        function readNext() {
+            var reader;
+            if (index >= files.length) {
+                callback(results);
+                return;
+            }
+            reader = new FileReader();
+            reader.onload = function (e) {
+                results.push(e.target.result);
+                index += 1;
+                readNext();
+            };
+            reader.onerror = function () {
+                index += 1;
+                readNext();
+            };
+            reader.readAsDataURL(files[index]);
+        }
+        readNext();
+    }
+
+    function bindImageInputs() {
+        var compoundInput = el('compoundImageFiles');
+        var propertyInput = el('adminPropertyImageFiles');
+        var compoundUrls = el('compoundImageUrls');
+        var propertyUrls = el('adminPropertyImageUrls');
+        if (compoundInput) {
+            compoundInput.addEventListener('change', function () {
+                readFilesAsBase64(compoundInput.files || [], function (images) {
+                    compoundFileImages = images;
+                    syncCompoundImagePreview();
+                });
+            });
+        }
+        if (propertyInput) {
+            propertyInput.addEventListener('change', function () {
+                readFilesAsBase64(propertyInput.files || [], function (images) {
+                    propertyFileImages = images;
+                    syncPropertyImagePreview();
+                });
+            });
+        }
+        if (compoundUrls) {
+            compoundUrls.addEventListener('input', syncCompoundImagePreview);
+        }
+        if (propertyUrls) {
+            propertyUrls.addEventListener('input', syncPropertyImagePreview);
+        }
+    }
+
+    function saveCompound(event) {
+        var compoundId;
+        var payload;
+        var promise;
+        if (event && typeof event.preventDefault === 'function') {
+            event.preventDefault();
+        }
+        compoundId = getTrimmedValue('compoundId');
+        payload = {
+            id: compoundId || ('compound_' + Date.now()),
+            name: getTrimmedValue('compoundName'),
+            city: getTrimmedValue('compoundCity'),
+            area: getTrimmedValue('compoundArea'),
+            shortDescription: getTrimmedValue('compoundShortDescription'),
+            description: getTrimmedValue('compoundDescription'),
+            totalUnits: toIntegerOrNull(getTrimmedValue('compoundTotalUnits')) || 0,
+            startingPrice: toIntegerOrNull(getTrimmedValue('compoundStartingPrice')) || 0,
+            completionDate: getTrimmedValue('compoundCompletionDate'),
+            amenities: splitCsv(getTrimmedValue('compoundAmenities')),
+            images: collectImages('compoundImageUrls', compoundFileImages),
+            order: toIntegerOrNull(getTrimmedValue('compoundOrder')) || 0,
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        };
+        if (!payload.name) {
+            notify('يرجى إدخال اسم المجمع', true);
+            return;
+        }
+        if (compoundId) {
+            promise = db.collection('compounds').doc(compoundId).set(payload, { merge: true });
+        } else {
+            payload.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+            promise = db.collection('compounds').doc(payload.id).set(payload);
+        }
+        promise.then(function () {
+            notify('تم حفظ المجمع بنجاح');
+            closeCompoundModal();
+        }).catch(function (error) {
+            handleError('تعذر حفظ المجمع', error);
+        });
+    }
+
+    function editCompound(id) {
+        var item = compoundsMap[id];
+        if (!item) {
+            notify('المجمع غير موجود', true);
+            return;
+        }
+        openAddCompoundModal();
+        setInputValue('compoundId', item.id);
+        setInputValue('compoundName', item.name || '');
+        setInputValue('compoundCity', item.city || '');
+        setInputValue('compoundArea', item.area || '');
+        setInputValue('compoundShortDescription', item.shortDescription || '');
+        setInputValue('compoundDescription', item.description || '');
+        setInputValue('compoundTotalUnits', item.totalUnits || '');
+        setInputValue('compoundStartingPrice', item.startingPrice || '');
+        setInputValue('compoundCompletionDate', item.completionDate || '');
+        setInputValue('compoundAmenities', (item.amenities || []).join(', '));
+        setInputValue('compoundImageUrls', (item.images || []).join('\n'));
+        setInputValue('compoundOrder', item.order || 0);
+        compoundFileImages = [];
+        syncCompoundImagePreview();
+    }
+
+    function deleteCompound(id) {
+        if (!window.confirm('هل أنت متأكد من حذف هذا المجمع؟')) {
+            return;
+        }
+        db.collection('compounds').doc(id).delete().then(function () {
+            notify('تم حذف المجمع');
+        }).catch(function (error) {
+            handleError('تعذر حذف المجمع', error);
+        });
+    }
+
+    function normalizeProperty(item) {
+        item.images = Array.isArray(item.images) ? item.images : [];
+        return item;
+    }
+
+    function renderApprovedProperties() {
+        var body = el('approvedPropertiesTableBody');
+        var html = '';
+        var i;
+        if (!body) {
+            return;
+        }
+        if (!approvedPropertiesCache.length) {
+            body.innerHTML = '<tr><td colspan="7">لا توجد عقارات معتمدة</td></tr>';
+            return;
+        }
+        for (i = 0; i < approvedPropertiesCache.length; i++) {
+            var item = approvedPropertiesCache[i];
+            html += '<tr>';
+            html += '<td>' + escapeHtml(item.title || '-') + '</td>';
+            html += '<td>' + escapeHtml(item.type || '-') + '</td>';
+            html += '<td>' + escapeHtml(item.city || '-') + '</td>';
+            html += '<td>' + escapeHtml(formatPrice(item.price || 0)) + '</td>';
+            html += '<td>' + escapeHtml(item.purpose || '-') + '</td>';
+            html += '<td>' + escapeHtml((compoundsMap[item.compound] && compoundsMap[item.compound].name) || item.compoundName || '-') + '</td>';
+            html += '<td><button type="button" onclick="editProperty(\'' + escapeJsString(item.id) + '\')">تعديل</button> <button type="button" class="danger" onclick="deleteProperty(\'' + escapeJsString(item.id) + '\')">حذف</button></td>';
+            html += '</tr>';
+        }
+        body.innerHTML = html;
+    }
+
+    function renderPendingProperties() {
+        var container = el('pendingPropertiesList');
+        var html = '';
+        var i;
+        if (!container) {
+            return;
+        }
+        if (!pendingPropertiesCache.length) {
+            container.innerHTML = '<div class="empty-state">لا توجد عقارات بانتظار المراجعة</div>';
+            return;
+        }
+        for (i = 0; i < pendingPropertiesCache.length; i++) {
+            var item = pendingPropertiesCache[i];
+            var image = item.images.length ? item.images[0] : '';
+            html += '<div class="admin-card property-card">';
+            if (image) {
+                html += '<div class="card-cover"><img src="' + escapeHtml(image) + '" alt="' + escapeHtml(item.title || '') + '"></div>';
+            }
+            html += '<div class="card-body">';
+            html += '<h3>' + escapeHtml(item.title || 'بدون عنوان') + '</h3>';
+            html += '<p>' + escapeHtml(item.city || '-') + ' - ' + escapeHtml(item.area || '-') + '</p>';
+            html += '<p>' + escapeHtml(formatPrice(item.price || 0)) + '</p>';
+            html += '<div class="card-actions">';
+            html += '<button type="button" onclick="approveProperty(\'' + escapeJsString(item.id) + '\')">اعتماد</button>';
+            html += '<button type="button" onclick="editProperty(\'' + escapeJsString(item.id) + '\')">تعديل</button>';
+            html += '<button type="button" class="danger" onclick="deleteProperty(\'' + escapeJsString(item.id) + '\')">رفض</button>';
+            html += '</div></div></div>';
+        }
+        container.innerHTML = html;
+    }
+
+    function loadApprovedProperties() {
+        if (typeof approvedPropertiesUnsubscribe === 'function') {
+            approvedPropertiesUnsubscribe();
+        }
+        approvedPropertiesUnsubscribe = db.collection('properties').where('status', '==', 'approved').onSnapshot(function (snapshot) {
+            approvedPropertiesCache = [];
+            snapshot.forEach(function (doc) {
+                var data = normalizeProperty(doc.data() || {});
+                data.id = doc.id;
+                approvedPropertiesCache.push(data);
+            });
+            sortByUpdatedDesc(approvedPropertiesCache);
+            renderApprovedProperties();
+        }, function (error) {
+            handleError('تعذر تحميل العقارات المعتمدة', error);
+        });
+    }
+
+    function loadPendingProperties() {
+        if (typeof pendingPropertiesUnsubscribe === 'function') {
+            pendingPropertiesUnsubscribe();
+        }
+        pendingPropertiesUnsubscribe = db.collection('properties').where('status', '==', 'pending').onSnapshot(function (snapshot) {
+            pendingPropertiesCache = [];
+            snapshot.forEach(function (doc) {
+                var data = normalizeProperty(doc.data() || {});
+                data.id = doc.id;
+                pendingPropertiesCache.push(data);
+            });
+            sortByUpdatedDesc(pendingPropertiesCache);
+            renderPendingProperties();
+        }, function (error) {
+            handleError('تعذر تحميل العقارات المعلقة', error);
+        });
+    }
+
+    function openAddPropertyModal() {
+        resetForm('adminPropertyForm');
+        setInputValue('adminPropertyId', '');
+        propertyFileImages = [];
+        populateCompoundDropdown();
+        syncPropertyImagePreview();
+        toggleAdminRentPeriod();
+        showElement(el('adminPropertyModal'), true);
+    }
+
+    function closeAddPropertyModal() {
+        showElement(el('adminPropertyModal'), false);
+    }
+
+    function saveAdminProperty(event) {
+        var propertyId;
+        var compoundId;
+        var compoundName;
+        var payload;
+        var promise;
+        if (event && typeof event.preventDefault === 'function') {
+            event.preventDefault();
+        }
+        propertyId = getTrimmedValue('adminPropertyId');
+        compoundId = getTrimmedValue('adminPropertyCompound');
+        compoundName = compoundsMap[compoundId] ? compoundsMap[compoundId].name : '';
+        payload = {
+            id: propertyId || ('property_' + Date.now()),
+            title: getTrimmedValue('adminPropertyTitle'),
+            type: getTrimmedValue('adminPropertyType'),
+            purpose: getTrimmedValue('adminPropertyPurpose'),
+            price: toIntegerOrNull(getTrimmedValue('adminPropertyPrice')) || 0,
+            rentPeriod: getTrimmedValue('adminPropertyPurpose') === 'إيجار' ? getTrimmedValue('adminPropertyRentPeriod') : '',
+            city: getTrimmedValue('adminPropertyCity'),
+            area: getTrimmedValue('adminPropertyArea'),
+            size: toIntegerOrNull(getTrimmedValue('adminPropertySize')) || 0,
+            bedrooms: toIntegerOrNull(getTrimmedValue('adminPropertyBedrooms')) || 0,
+            bathrooms: toIntegerOrNull(getTrimmedValue('adminPropertyBathrooms')) || 0,
+            floor: toIntegerOrNull(getTrimmedValue('adminPropertyFloor')) || 0,
+            description: getTrimmedValue('adminPropertyDescription'),
+            images: collectImages('adminPropertyImageUrls', propertyFileImages),
+            compound: compoundId,
+            compoundName: compoundName,
+            status: 'approved',
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        };
+        if (!payload.title || !payload.type || !payload.purpose) {
+            notify('يرجى تعبئة الحقول الأساسية للعقار', true);
+            return;
+        }
+        if (propertyId) {
+            promise = db.collection('properties').doc(propertyId).set(payload, { merge: true });
+        } else {
+            payload.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+            promise = db.collection('properties').doc(payload.id).set(payload);
+        }
+        promise.then(function () {
+            notify('تم حفظ العقار بنجاح');
+            closeAddPropertyModal();
+        }).catch(function (error) {
+            handleError('تعذر حفظ العقار', error);
+        });
+    }
+
+    function approveProperty(id) {
+        db.collection('properties').doc(id).set({
+            status: 'approved',
+            approvedAt: firebase.firestore.FieldValue.serverTimestamp(),
+            reviewedBy: currentSession ? currentSession.username : ''
+        }, { merge: true }).then(function () {
+            notify('تم اعتماد العقار');
+        }).catch(function (error) {
+            handleError('تعذر اعتماد العقار', error);
+        });
+    }
+
+    function deleteProperty(id) {
+        if (!window.confirm('هل تريد حذف/رفض هذا العقار؟')) {
+            return;
+        }
+        db.collection('properties').doc(id).delete().then(function () {
+            notify('تم حذف العقار');
+        }).catch(function (error) {
+            handleError('تعذر حذف العقار', error);
+        });
+    }
+
+    function editProperty(id) {
+        db.collection('properties').doc(id).get().then(function (doc) {
+            var item;
+            if (!doc.exists) {
+                notify('العقار غير موجود', true);
+                return;
+            }
+            item = normalizeProperty(doc.data() || {});
+            item.id = doc.id;
+            openAddPropertyModal();
+            setInputValue('adminPropertyId', item.id);
+            setInputValue('adminPropertyTitle', item.title || '');
+            setInputValue('adminPropertyType', item.type || '');
+            setInputValue('adminPropertyPurpose', item.purpose || '');
+            setInputValue('adminPropertyPrice', item.price || '');
+            setInputValue('adminPropertyRentPeriod', item.rentPeriod || '');
+            setInputValue('adminPropertyCity', item.city || '');
+            setInputValue('adminPropertyArea', item.area || '');
+            setInputValue('adminPropertySize', item.size || '');
+            setInputValue('adminPropertyBedrooms', item.bedrooms || '');
+            setInputValue('adminPropertyBathrooms', item.bathrooms || '');
+            setInputValue('adminPropertyFloor', item.floor || '');
+            setInputValue('adminPropertyDescription', item.description || '');
+            setInputValue('adminPropertyImageUrls', (item.images || []).join('\n'));
+            setInputValue('adminPropertyCompound', item.compound || '');
+            propertyFileImages = [];
+            toggleAdminRentPeriod();
+            syncPropertyImagePreview();
+        }).catch(function (error) {
+            handleError('تعذر تحميل العقار', error);
+        });
+    }
+
+    function toggleAdminRentPeriod() {
+        var purpose = getTrimmedValue('adminPropertyPurpose');
+        toggleFormRow('adminRentPeriodRow', purpose === 'إيجار');
+    }
+
+    function statusBadge(status) {
+        var label = status;
+        if (status === 'pending') {
+            label = 'قيد الانتظار';
+        } else if (status === 'accepted') {
+            label = 'تمت الجدولة';
+        } else if (status === 'completed') {
+            label = 'مكتملة';
+        } else if (status === 'cancelled') {
+            label = 'ملغاة';
+        }
+        return '<span class="status-badge status-' + escapeHtml(status || 'pending') + '">' + escapeHtml(label || '-') + '</span>';
+    }
+
+    function loadVisitRequests() {
+        if (typeof visitsUnsubscribe === 'function') {
+            visitsUnsubscribe();
+        }
+        visitsUnsubscribe = db.collection('visit_requests').onSnapshot(function (snapshot) {
+            allVisits = [];
+            snapshot.forEach(function (doc) {
+                var data = doc.data() || {};
+                data.id = doc.id;
+                allVisits.push(data);
+            });
+            sortByUpdatedDesc(allVisits);
+            renderVisits();
+        }, function (error) {
+            handleError('تعذر تحميل طلبات الزيارة', error);
+        });
+    }
+
+    function filterVisits(status) {
+        currentVisitsFilter = status || 'all';
+        renderVisits();
+    }
+
+    function renderVisits() {
+        var container = el('visitRequestsList');
+        var html = '';
+        var filtered = [];
+        var i;
+        if (!container) {
+            return;
+        }
+        for (i = 0; i < allVisits.length; i++) {
+            if (currentVisitsFilter === 'all' || allVisits[i].status === currentVisitsFilter) {
+                filtered.push(allVisits[i]);
+            }
+        }
+        if (!filtered.length) {
+            container.innerHTML = '<div class="empty-state">لا توجد طلبات زيارة</div>';
+            return;
+        }
+        for (i = 0; i < filtered.length; i++) {
+            var visit = filtered[i];
+            html += '<div class="admin-card visit-card">';
+            html += '<div class="card-body">';
+            html += '<div class="card-head"><h3>' + escapeHtml(visit.propertyTitle || 'عقار') + '</h3>' + statusBadge(visit.status) + '</div>';
+            html += '<p><strong>العميل:</strong> ' + escapeHtml(visit.userName || '-') + '</p>';
+            html += '<p><strong>الهاتف:</strong> ' + escapeHtml(visit.userPhone || '-') + '</p>';
+            html += '<p><strong>تم الطلب:</strong> ' + escapeHtml(formatDateTime(visit.createdAt)) + '</p>';
+            if (visit.scheduledDate || visit.scheduledTime) {
+                html += '<p><strong>الموعد:</strong> ' + escapeHtml((visit.scheduledDate || '-') + ' ' + (visit.scheduledTime || '')) + '</p>';
+            }
+            if (visit.employeeNotes) {
+                html += '<p><strong>ملاحظات:</strong> ' + escapeHtml(visit.employeeNotes) + '</p>';
+            }
+            html += '<div class="card-actions">';
+            if (visit.status === 'pending') {
+                html += '<button type="button" onclick="openScheduleModal(\'' + escapeJsString(visit.id) + '\')">جدولة</button>';
+                html += '<button type="button" class="danger" onclick="cancelVisit(\'' + escapeJsString(visit.id) + '\')">إلغاء</button>';
+            } else if (visit.status === 'accepted') {
+                html += '<button type="button" onclick="completeVisit(\'' + escapeJsString(visit.id) + '\')">إتمام</button>';
+                html += '<button type="button" class="danger" onclick="cancelVisit(\'' + escapeJsString(visit.id) + '\')">إلغاء</button>';
+            }
+            html += '</div></div></div>';
+        }
+        container.innerHTML = html;
+    }
+
+    function openScheduleModal(id) {
+        setInputValue('scheduleVisitId', id);
+        setInputValue('scheduleDate', '');
+        setInputValue('scheduleTime', '');
+        setInputValue('scheduleNotes', '');
+        showElement(el('scheduleModal'), true);
+    }
+
+    function closeScheduleModal() {
+        showElement(el('scheduleModal'), false);
+    }
+
+    function confirmSchedule(event) {
+        var visitId;
+        var date;
+        var time;
+        var notes;
+        if (event && typeof event.preventDefault === 'function') {
+            event.preventDefault();
+        }
+        visitId = getTrimmedValue('scheduleVisitId');
+        date = getTrimmedValue('scheduleDate');
+        time = getTrimmedValue('scheduleTime');
+        notes = getTrimmedValue('scheduleNotes');
+        if (!visitId || !date || !time) {
+            notify('يرجى تحديد التاريخ والوقت', true);
+            return;
+        }
+        db.collection('visit_requests').doc(visitId).set({
+            scheduledDate: date,
+            scheduledTime: time,
+            employeeNotes: notes,
+            status: 'accepted',
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        }, { merge: true }).then(function () {
+            notify('تمت جدولة الزيارة');
+            closeScheduleModal();
+        }).catch(function (error) {
+            handleError('تعذر جدولة الزيارة', error);
+        });
+    }
+
+    function completeVisit(id) {
+        db.collection('visit_requests').doc(id).set({
+            status: 'completed',
+            completedAt: firebase.firestore.FieldValue.serverTimestamp()
+        }, { merge: true }).then(function () {
+            notify('تم تحديث الزيارة إلى مكتملة');
+        }).catch(function (error) {
+            handleError('تعذر إتمام الزيارة', error);
+        });
+    }
+
+    function cancelVisit(id) {
+        db.collection('visit_requests').doc(id).set({
+            status: 'cancelled',
+            cancelledAt: firebase.firestore.FieldValue.serverTimestamp()
+        }, { merge: true }).then(function () {
+            notify('تم إلغاء الزيارة');
+        }).catch(function (error) {
+            handleError('تعذر إلغاء الزيارة', error);
+        });
+    }
+
+    function renderChats() {
+        var container = el('chatList');
+        var html = '';
+        var i;
+        if (!container) {
+            return;
+        }
+        if (!chatsCache.length) {
+            container.innerHTML = '<div class="empty-state">لا توجد محادثات</div>';
+            return;
+        }
+        for (i = 0; i < chatsCache.length; i++) {
+            var chat = chatsCache[i];
+            var unread = parseInt(chat.unreadAdminCount || chat.unreadCount || 0, 10) || 0;
+            html += '<button type="button" class="chat-list-item' + (currentChatId === chat.id ? ' active' : '') + '" onclick="openChatConversation(\'' + escapeJsString(chat.id) + '\')">';
+            html += '<div class="chat-list-main"><strong>' + escapeHtml(chat.userName || chat.customerName || 'عميل') + '</strong>';
+            html += '<p>' + escapeHtml(chat.lastMessage || 'بدون رسائل') + '</p></div>';
+            html += '<div class="chat-list-meta">';
+            html += '<span>' + escapeHtml(formatTime(chat.updatedAt || chat.createdAt)) + '</span>';
+            if (unread > 0) {
+                html += '<span class="badge">' + unread + '</span>';
+            }
+            html += '</div></button>';
+        }
+        container.innerHTML = html;
+    }
+
+    function loadChats() {
+        if (typeof chatsUnsubscribe === 'function') {
+            chatsUnsubscribe();
+        }
+        chatsUnsubscribe = db.collection('chats').onSnapshot(function (snapshot) {
+            chatsCache = [];
+            snapshot.forEach(function (doc) {
+                var data = doc.data() || {};
+                data.id = doc.id;
+                chatsCache.push(data);
+            });
+            sortByUpdatedDesc(chatsCache);
+            renderChats();
+        }, function (error) {
+            handleError('تعذر تحميل المحادثات', error);
+        });
+    }
+
+    function renderConversationMessages(messages) {
+        var container = el('chatMessages');
+        var html = '';
+        var i;
+        if (!container) {
+            return;
+        }
+        if (!messages.length) {
+            container.innerHTML = '<div class="empty-state">ابدأ الرد على هذه المحادثة</div>';
+            return;
+        }
+        for (i = 0; i < messages.length; i++) {
+            var message = messages[i];
+            var mine = message.sender === 'employee';
+            html += '<div class="chat-message ' + (mine ? 'sent' : 'received') + '">';
+            html += '<div class="chat-bubble">' + escapeHtml(message.text || message.message || '') + '</div>';
+            html += '<div class="chat-time">' + escapeHtml(formatDateTime(message.createdAt)) + '</div>';
+            html += '</div>';
+        }
+        container.innerHTML = html;
+        container.scrollTop = container.scrollHeight;
+    }
+
+    function openChatConversation(chatId) {
+        var title = 'المحادثة';
+        var i;
+        currentChatId = chatId;
+        closeActiveChatListener();
+        renderChats();
+        for (i = 0; i < chatsCache.length; i++) {
+            if (chatsCache[i].id === chatId) {
+                title = chatsCache[i].userName || chatsCache[i].customerName || 'المحادثة';
+                break;
+            }
+        }
+        setText(['chatWindowTitle', 'activeChatTitle'], title);
+        currentChatUnsubscribe = db.collection('chats').doc(chatId).collection('messages').onSnapshot(function (snapshot) {
+            var messages = [];
+            snapshot.forEach(function (doc) {
+                var data = doc.data() || {};
+                data.id = doc.id;
+                messages.push(data);
+            });
+            messages.sort(function (a, b) {
+                var aDate = toDateObject(a.createdAt);
+                var bDate = toDateObject(b.createdAt);
+                var aTime = aDate ? aDate.getTime() : 0;
+                var bTime = bDate ? bDate.getTime() : 0;
+                return aTime - bTime;
+            });
+            renderConversationMessages(messages);
+            db.collection('chats').doc(chatId).set({
+                unreadAdminCount: 0,
+                unreadCount: 0,
+                lastReadByAdminAt: firebase.firestore.FieldValue.serverTimestamp()
+            }, { merge: true }).catch(function () {
+            });
+        }, function (error) {
+            handleError('تعذر فتح المحادثة', error);
+        });
+    }
+
+    function sendEmployeeMessage() {
+        var input = el('chatReplyInput');
+        var text;
+        if (!currentChatId) {
+            notify('اختر محادثة أولاً', true);
+            return;
+        }
+        text = input && typeof input.value === 'string' ? input.value.trim() : '';
+        if (!text) {
+            return;
+        }
+        db.collection('chats').doc(currentChatId).collection('messages').add({
+            text: text,
+            message: text,
+            sender: 'employee',
+            senderName: currentSession ? (currentSession.name || currentSession.username) : 'Employee',
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        }).then(function () {
+            return db.collection('chats').doc(currentChatId).set({
+                lastMessage: text,
+                lastSender: 'employee',
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                unreadUserCount: firebase.firestore.FieldValue.increment(1)
+            }, { merge: true });
+        }).then(function () {
+            if (input) {
+                input.value = '';
+            }
+        }).catch(function (error) {
+            handleError('تعذر إرسال الرسالة', error);
+        });
+    }
+
+    function renderContacts() {
+        var body = el('contactsTableBody');
+        var html = '';
+        var i;
+        if (!body) {
+            return;
+        }
+        if (!contactMessagesCache.length) {
+            body.innerHTML = '<tr><td colspan="5">لا توجد رسائل تواصل</td></tr>';
+            return;
+        }
+        for (i = 0; i < contactMessagesCache.length; i++) {
+            var item = contactMessagesCache[i];
+            html += '<tr>';
+            html += '<td>' + escapeHtml(item.name || '-') + '</td>';
+            html += '<td>' + escapeHtml(item.phone || '-') + '</td>';
+            html += '<td>' + escapeHtml(item.email || '-') + '</td>';
+            html += '<td>' + escapeHtml(item.message || '-') + '</td>';
+            html += '<td>' + escapeHtml(formatDateTime(item.createdAt)) + '</td>';
+            html += '</tr>';
+        }
+        body.innerHTML = html;
+    }
+
+    function loadContacts() {
+        if (typeof contactsUnsubscribe === 'function') {
+            contactsUnsubscribe();
+        }
+        contactsUnsubscribe = db.collection('contact_messages').onSnapshot(function (snapshot) {
+            contactMessagesCache = [];
+            snapshot.forEach(function (doc) {
+                var data = doc.data() || {};
+                data.id = doc.id;
+                contactMessagesCache.push(data);
+            });
+            sortByUpdatedDesc(contactMessagesCache);
+            renderContacts();
+        }, function (error) {
+            handleError('تعذر تحميل رسائل التواصل', error);
+        });
+    }
+
+    function renderEmployees() {
+        var body = el('employeesTableBody');
+        var html = '';
+        var i;
+        if (!body) {
+            return;
+        }
+        if (!employeesCache.length) {
+            body.innerHTML = '<tr><td colspan="7">لا يوجد موظفون</td></tr>';
+            return;
+        }
+        for (i = 0; i < employeesCache.length; i++) {
+            var item = employeesCache[i];
+            html += '<tr>';
+            html += '<td>' + escapeHtml(item.name || '-') + '</td>';
+            html += '<td>' + escapeHtml(item.username || '-') + '</td>';
+            html += '<td>' + escapeHtml(roleLabel(item.role)) + '</td>';
+            html += '<td>' + escapeHtml(item.status || 'active') + '</td>';
+            html += '<td>' + escapeHtml(formatDateTime(item.createdAt)) + '</td>';
+            html += '<td>' + escapeHtml(item.id || '-') + '</td>';
+            html += '<td><button type="button" onclick="editEmployee(\'' + escapeJsString(item.id) + '\')">تعديل</button> <button type="button" onclick="resetEmployeePassword(\'' + escapeJsString(item.id) + '\')">OTP</button> <button type="button" class="danger" onclick="removeEmployee(\'' + escapeJsString(item.id) + '\')">حذف</button></td>';
+            html += '</tr>';
+        }
+        body.innerHTML = html;
+    }
+
+    function loadEmployees() {
+        if (typeof employeesUnsubscribe === 'function') {
+            employeesUnsubscribe();
+        }
+        employeesUnsubscribe = db.collection('employees').onSnapshot(function (snapshot) {
+            employeesCache = [];
+            snapshot.forEach(function (doc) {
+                var data = doc.data() || {};
+                data.id = doc.id;
+                employeesCache.push(data);
+            });
+            sortByUpdatedDesc(employeesCache);
+            renderEmployees();
+        }, function (error) {
+            handleError('تعذر تحميل الموظفين', error);
+        });
+    }
+
+    function openAddEmployeeModal() {
+        resetForm('employeeForm');
+        setInputValue('employeeId', '');
+        showElement(el('employeeModal'), true);
+    }
+
+    function closeEmployeeModal() {
+        showElement(el('employeeModal'), false);
+    }
+
+    function saveEmployee(event) {
+        var employeeId;
+        var name;
+        var username;
+        var password;
+        var role;
+        var basePayload;
+        if (event && typeof event.preventDefault === 'function') {
+            event.preventDefault();
+        }
+        employeeId = getTrimmedValue('employeeId');
+        name = getTrimmedValue('employeeName');
+        username = getTrimmedValue('employeeUsername');
+        password = getTrimmedValue('employeePassword');
+        role = getTrimmedValue('employeeRole') || 'sales';
+        if (!name || !username || (!employeeId && !password)) {
+            notify('يرجى تعبئة الحقول المطلوبة', true);
+            return;
+        }
+        basePayload = {
+            id: employeeId || ('employee_' + Date.now()),
+            name: name,
+            username: username,
+            role: role,
+            status: 'active',
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        };
+        db.collection('employees').where('username', '==', username).get().then(function (snapshot) {
+            var duplicate = false;
+            snapshot.forEach(function (doc) {
+                if (doc.id !== employeeId) {
+                    duplicate = true;
+                }
+            });
+            if (duplicate) {
+                notify('اسم المستخدم مستخدم بالفعل', true);
+                return null;
+            }
+            if (password) {
+                basePayload.passwordHash = simpleHash(password);
+            }
+            if (employeeId) {
+                return db.collection('employees').doc(employeeId).set(basePayload, { merge: true });
+            }
+            basePayload.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+            return db.collection('employees').doc(basePayload.id).set(basePayload);
+        }).then(function (result) {
+            if (result === null) {
+                return;
+            }
+            notify('تم حفظ الموظف بنجاح');
+            closeEmployeeModal();
+        }).catch(function (error) {
+            handleError('تعذر حفظ الموظف', error);
+        });
+    }
+
+    function editEmployee(id) {
+        var i;
+        for (i = 0; i < employeesCache.length; i++) {
+            if (employeesCache[i].id === id) {
+                openAddEmployeeModal();
+                setInputValue('employeeId', employeesCache[i].id || '');
+                setInputValue('employeeName', employeesCache[i].name || '');
+                setInputValue('employeeUsername', employeesCache[i].username || '');
+                setInputValue('employeeRole', employeesCache[i].role || 'sales');
+                setInputValue('employeePassword', '');
+                return;
+            }
+        }
+        notify('الموظف غير موجود', true);
+    }
+
+    function resetEmployeePassword(id) {
+        var otp = generateOtp();
+        db.collection('employees').doc(id).set({
+            status: 'otp_reset',
+            otp: otp,
+            otpUpdatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        }, { merge: true }).then(function () {
+            window.alert('رمز OTP للموظف: ' + otp);
+        }).catch(function (error) {
+            handleError('تعذر إعادة تعيين كلمة مرور الموظف', error);
+        });
+    }
+
+    function removeEmployee(id) {
+        if (!window.confirm('هل تريد حذف هذا الموظف؟')) {
+            return;
+        }
+        db.collection('employees').doc(id).delete().then(function () {
+            notify('تم حذف الموظف');
+        }).catch(function (error) {
+            handleError('تعذر حذف الموظف', error);
+        });
+    }
+
+    function renderUsers() {
+        var body = el('usersTableBody');
+        var html = '';
+        var i;
+        if (!body) {
+            return;
+        }
+        if (!usersCache.length) {
+            body.innerHTML = '<tr><td colspan="7">لا يوجد مستخدمون</td></tr>';
+            return;
+        }
+        for (i = 0; i < usersCache.length; i++) {
+            var item = usersCache[i];
+            html += '<tr>';
+            html += '<td>' + escapeHtml(item.name || '-') + '</td>';
+            html += '<td>' + escapeHtml(item.email || '-') + '</td>';
+            html += '<td>' + escapeHtml(item.phone || '-') + '</td>';
+            html += '<td>' + escapeHtml(item.role || '-') + '</td>';
+            html += '<td>' + escapeHtml(item.status || 'active') + '</td>';
+            html += '<td>' + escapeHtml(formatDateTime(item.createdAt)) + '</td>';
+            html += '<td><button type="button" onclick="resetUserPassword(\'' + escapeJsString(item.id) + '\')">OTP</button> <button type="button" class="danger" onclick="removeUser(\'' + escapeJsString(item.id) + '\')">حذف</button></td>';
+            html += '</tr>';
+        }
+        body.innerHTML = html;
+    }
+
+    function loadUsers() {
+        if (typeof usersUnsubscribe === 'function') {
+            usersUnsubscribe();
+        }
+        usersUnsubscribe = db.collection('users').onSnapshot(function (snapshot) {
+            usersCache = [];
+            snapshot.forEach(function (doc) {
+                var data = doc.data() || {};
+                data.id = doc.id;
+                usersCache.push(data);
+            });
+            sortByUpdatedDesc(usersCache);
+            renderUsers();
+        }, function (error) {
+            handleError('تعذر تحميل المستخدمين', error);
+        });
+    }
+
+    function resetUserPassword(id) {
+        var otp = generateOtp();
+        db.collection('users').doc(id).set({
+            status: 'otp_reset',
+            otp: otp,
+            otpUpdatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        }, { merge: true }).then(function () {
+            window.alert('رمز OTP للمستخدم: ' + otp);
+        }).catch(function (error) {
+            handleError('تعذر إعادة تعيين كلمة مرور المستخدم', error);
+        });
+    }
+
+    function removeUser(id) {
+        if (!window.confirm('هل تريد حذف هذا المستخدم؟')) {
+            return;
+        }
+        db.collection('users').doc(id).delete().then(function () {
+            notify('تم حذف المستخدم');
+        }).catch(function (error) {
+            handleError('تعذر حذف المستخدم', error);
+        });
+    }
+
+    function bindForms() {
+        var loginForm = el('adminLoginForm');
+        var passwordResetForm = el('passwordResetForm');
+        var compoundForm = el('compoundForm');
+        var propertyForm = el('adminPropertyForm');
+        var scheduleForm = el('scheduleForm');
+        var employeeForm = el('employeeForm');
+        var chatSendButton = el('chatSendButton');
+        var chatInput = el('chatReplyInput');
+        var purposeSelect = el('adminPropertyPurpose');
+
+        if (loginForm) {
+            loginForm.addEventListener('submit', loginAdmin);
+        }
+        if (passwordResetForm) {
+            passwordResetForm.addEventListener('submit', submitNewPassword);
+        }
+        if (compoundForm) {
+            compoundForm.addEventListener('submit', saveCompound);
+        }
+        if (propertyForm) {
+            propertyForm.addEventListener('submit', saveAdminProperty);
+        }
+        if (scheduleForm) {
+            scheduleForm.addEventListener('submit', confirmSchedule);
+        }
+        if (employeeForm) {
+            employeeForm.addEventListener('submit', saveEmployee);
+        }
+        if (chatSendButton) {
+            chatSendButton.addEventListener('click', sendEmployeeMessage);
+        }
+        if (chatInput) {
+            chatInput.addEventListener('keypress', function (event) {
+                if (event.key === 'Enter') {
+                    event.preventDefault();
+                    sendEmployeeMessage();
+                }
+            });
+        }
+        if (purposeSelect) {
+            purposeSelect.addEventListener('change', toggleAdminRentPeriod);
+        }
+    }
+
+    function init() {
+        bindForms();
+        bindImageInputs();
+        toggleAdminRentPeriod();
+        if (restoreSession()) {
+            initAdminApp();
+        } else {
+            showScreen('login');
+        }
+    }
+
+    window.simpleHash = simpleHash;
+    window.formatPrice = formatPrice;
+    window.formatTime = formatTime;
+    window.escapeHtml = escapeHtml;
+    window.switchTab = switchTab;
+    window.loginAdmin = loginAdmin;
+    window.submitNewPassword = submitNewPassword;
+    window.logoutAdmin = logoutAdmin;
+    window.loadDashboardData = loadDashboardData;
+    window.loadCompounds = loadCompounds;
+    window.openAddCompoundModal = openAddCompoundModal;
+    window.closeCompoundModal = closeCompoundModal;
+    window.saveCompound = saveCompound;
+    window.editCompound = editCompound;
+    window.deleteCompound = deleteCompound;
+    window.loadApprovedProperties = loadApprovedProperties;
+    window.loadPendingProperties = loadPendingProperties;
+    window.openAddPropertyModal = openAddPropertyModal;
+    window.closeAddPropertyModal = closeAddPropertyModal;
+    window.saveAdminProperty = saveAdminProperty;
+    window.approveProperty = approveProperty;
+    window.deleteProperty = deleteProperty;
+    window.editProperty = editProperty;
+    window.toggleAdminRentPeriod = toggleAdminRentPeriod;
+    window.loadVisitRequests = loadVisitRequests;
+    window.filterVisits = filterVisits;
+    window.renderVisits = renderVisits;
+    window.openScheduleModal = openScheduleModal;
+    window.closeScheduleModal = closeScheduleModal;
+    window.confirmSchedule = confirmSchedule;
+    window.completeVisit = completeVisit;
+    window.cancelVisit = cancelVisit;
+    window.loadChats = loadChats;
+    window.openChatConversation = openChatConversation;
+    window.sendEmployeeMessage = sendEmployeeMessage;
+    window.loadContacts = loadContacts;
+    window.loadEmployees = loadEmployees;
+    window.openAddEmployeeModal = openAddEmployeeModal;
+    window.closeEmployeeModal = closeEmployeeModal;
+    window.saveEmployee = saveEmployee;
+    window.editEmployee = editEmployee;
+    window.resetEmployeePassword = resetEmployeePassword;
+    window.removeEmployee = removeEmployee;
+    window.loadUsers = loadUsers;
+    window.resetUserPassword = resetUserPassword;
+    window.removeUser = removeUser;
+
+    document.addEventListener('DOMContentLoaded', init);
 })();

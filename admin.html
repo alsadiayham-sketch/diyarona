@@ -3,352 +3,886 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ديارنا - لوحة التحكم</title>
-    <link rel="stylesheet" href="admin.css">
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800;900&display=swap" rel="stylesheet">
+    <title>ديارنا | لوحة التحكم</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="admin.css">
 </head>
-<body>
-    <!-- Login Screen -->
-    <div id="employeeLoginScreen" class="login-screen">
-        <div class="login-card">
-            <div class="login-logo">
-                <h1>ديارنا</h1>
-                <p>لوحة تحكم الموظفين</p>
+<body class="admin-body">
+    <div id="employeeLoginScreen" class="auth-screen">
+        <div class="auth-card">
+            <div class="auth-brand">
+                <div class="auth-logo"><i class="fa-solid fa-building"></i></div>
+                <h1>لوحة تحكم ديارنا</h1>
+                <p>تسجيل دخول الموظفين لإدارة العقارات والمستخدمين والزيارات.</p>
             </div>
-            <form onsubmit="adminLogin(event)">
+            <form id="employeeLoginForm" class="auth-form" onsubmit="adminLogin(event)">
                 <div class="form-group">
-                    <label>اسم المستخدم</label>
-                    <input type="text" id="adminUsername" required>
+                    <label for="adminUsername">اسم المستخدم</label>
+                    <input type="text" id="adminUsername" name="adminUsername" autocomplete="username" required>
                 </div>
                 <div class="form-group">
-                    <label>كلمة المرور</label>
-                    <input type="password" id="adminPassword" required>
+                    <label for="adminPassword">كلمة المرور</label>
+                    <input type="password" id="adminPassword" name="adminPassword" autocomplete="current-password" required>
                 </div>
-                <button type="submit" class="btn-login">دخول</button>
+                <button type="submit" class="btn btn-primary btn-block">
+                    <i class="fa-solid fa-right-to-bracket"></i>
+                    <span>دخول</span>
+                </button>
             </form>
         </div>
     </div>
 
-    <!-- Admin Panel -->
-    <div id="adminPanel" class="admin-panel hidden">
-        <!-- Sidebar -->
-        <aside class="sidebar">
-            <div class="sidebar-header">
-                <h2>ديارنا</h2>
-                <p>لوحة التحكم</p>
+    <div id="employeePasswordResetScreen" class="auth-screen hidden">
+        <div class="auth-card">
+            <div class="auth-brand">
+                <div class="auth-logo"><i class="fa-solid fa-key"></i></div>
+                <h2>تحديث كلمة المرور</h2>
+                <p>تم طلب إعادة تعيين كلمة المرور. أدخل رمز التحقق ثم أنشئ كلمة مرور جديدة.</p>
             </div>
-            <nav class="sidebar-nav">
-                <a href="#" class="nav-item active" data-tab="dashboard" onclick="switchTab('dashboard')">
-                    <i class="fas fa-tachometer-alt"></i> لوحة المعلومات
-                </a>
-                <a href="#" class="nav-item" data-tab="properties" onclick="switchTab('properties')">
-                    <i class="fas fa-building"></i> العقارات
-                </a>
-                <a href="#" class="nav-item" data-tab="pending" onclick="switchTab('pending')">
-                    <i class="fas fa-clock"></i> عقارات معلقة
-                    <span class="nav-badge" id="pendingBadge">0</span>
-                </a>
-                <a href="#" class="nav-item" data-tab="visits" onclick="switchTab('visits')">
-                    <i class="fas fa-calendar-check"></i> طلبات المعاينة
-                    <span class="nav-badge" id="visitsBadge">0</span>
-                </a>
-                <a href="#" class="nav-item" data-tab="chats" onclick="switchTab('chats')">
-                    <i class="fas fa-comments"></i> المحادثات
-                    <span class="nav-badge" id="chatsBadge">0</span>
-                </a>
-                <a href="#" class="nav-item" data-tab="contacts" onclick="switchTab('contacts')">
-                    <i class="fas fa-envelope"></i> رسائل التواصل
-                </a>
-                <a href="#" class="nav-item" data-tab="users" onclick="switchTab('users')">
-                    <i class="fas fa-users"></i> المستخدمين
-                </a>
+            <form id="employeePasswordResetForm" class="auth-form" onsubmit="completeOtpPasswordReset(event)">
+                <input type="hidden" id="resetEmployeeUsername" name="resetEmployeeUsername">
+                <div class="form-group">
+                    <label for="employeeOtp">رمز التحقق</label>
+                    <input type="text" id="employeeOtp" name="employeeOtp" inputmode="numeric" required>
+                </div>
+                <div class="form-group">
+                    <label for="employeeNewPassword">كلمة المرور الجديدة</label>
+                    <input type="password" id="employeeNewPassword" name="employeeNewPassword" autocomplete="new-password" required>
+                </div>
+                <div class="form-group">
+                    <label for="employeeConfirmPassword">تأكيد كلمة المرور</label>
+                    <input type="password" id="employeeConfirmPassword" name="employeeConfirmPassword" autocomplete="new-password" required>
+                </div>
+                <button type="submit" class="btn btn-primary btn-block">
+                    <i class="fa-solid fa-floppy-disk"></i>
+                    <span>حفظ كلمة المرور</span>
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <div id="adminPanel" class="admin-panel hidden">
+        <aside class="admin-sidebar">
+            <div class="sidebar-header">
+                <div class="sidebar-logo"><i class="fa-solid fa-city"></i></div>
+                <div>
+                    <h2>ديارنا</h2>
+                    <p>لوحة الإدارة</p>
+                </div>
+            </div>
+
+            <nav class="sidebar-nav" id="sidebarNav">
+                <button type="button" class="nav-item active" data-tab="dashboard" onclick="switchAdminTab('dashboard')">
+                    <span><i class="fa-solid fa-chart-line"></i> الرئيسية</span>
+                </button>
+                <button type="button" class="nav-item" data-tab="compounds" onclick="switchAdminTab('compounds')">
+                    <span><i class="fa-solid fa-building-circle-check"></i> المجمعات</span>
+                </button>
+                <button type="button" class="nav-item" data-tab="properties" onclick="switchAdminTab('properties')">
+                    <span><i class="fa-solid fa-house"></i> العقارات</span>
+                </button>
+                <button type="button" class="nav-item" data-tab="pending" onclick="switchAdminTab('pending')">
+                    <span><i class="fa-solid fa-clock"></i> العقارات المعلقة</span>
+                    <span class="badge" id="pendingPropertiesBadge">0</span>
+                </button>
+                <button type="button" class="nav-item" data-tab="visits" onclick="switchAdminTab('visits')">
+                    <span><i class="fa-solid fa-calendar-check"></i> طلبات الزيارة</span>
+                    <span class="badge" id="pendingVisitsBadge">0</span>
+                </button>
+                <button type="button" class="nav-item" data-tab="chats" onclick="switchAdminTab('chats')">
+                    <span><i class="fa-solid fa-comments"></i> المحادثات</span>
+                    <span class="badge" id="activeChatsBadge">0</span>
+                </button>
+                <button type="button" class="nav-item" data-tab="contacts" onclick="switchAdminTab('contacts')">
+                    <span><i class="fa-solid fa-envelope-open-text"></i> رسائل التواصل</span>
+                </button>
+                <button type="button" class="nav-item" data-tab="employees" onclick="switchAdminTab('employees')">
+                    <span><i class="fa-solid fa-user-tie"></i> الموظفون</span>
+                </button>
+                <button type="button" class="nav-item" data-tab="users" onclick="switchAdminTab('users')">
+                    <span><i class="fa-solid fa-users"></i> المستخدمون</span>
+                </button>
             </nav>
+
             <div class="sidebar-footer">
-                <button onclick="adminLogout()"><i class="fas fa-sign-out-alt"></i> خروج</button>
+                <div class="employee-card">
+                    <strong id="sidebarEmployeeName">مدير النظام</strong>
+                    <span id="sidebarEmployeeRole">system_admin</span>
+                </div>
+                <button type="button" class="btn btn-secondary btn-block" id="adminLogoutBtn" onclick="adminLogout()">
+                    <i class="fa-solid fa-arrow-right-from-bracket"></i>
+                    <span>تسجيل الخروج</span>
+                </button>
             </div>
         </aside>
 
-        <!-- Main Content -->
         <main class="admin-main">
-            <!-- Dashboard Tab -->
-            <div class="tab-content active" id="tab-dashboard">
-                <h2 class="page-title">لوحة المعلومات</h2>
-                <div class="dashboard-stats">
-                    <div class="dash-stat">
-                        <i class="fas fa-building"></i>
-                        <div>
-                            <span class="dash-stat-number" id="dashTotalProperties">0</span>
-                            <span class="dash-stat-label">إجمالي العقارات</span>
-                        </div>
-                    </div>
-                    <div class="dash-stat">
-                        <i class="fas fa-clock"></i>
-                        <div>
-                            <span class="dash-stat-number" id="dashPendingProperties">0</span>
-                            <span class="dash-stat-label">عقارات معلقة</span>
-                        </div>
-                    </div>
-                    <div class="dash-stat">
-                        <i class="fas fa-calendar-check"></i>
-                        <div>
-                            <span class="dash-stat-number" id="dashPendingVisits">0</span>
-                            <span class="dash-stat-label">طلبات معاينة</span>
-                        </div>
-                    </div>
-                    <div class="dash-stat">
-                        <i class="fas fa-comments"></i>
-                        <div>
-                            <span class="dash-stat-number" id="dashActiveChats">0</span>
-                            <span class="dash-stat-label">محادثات نشطة</span>
-                        </div>
-                    </div>
-                    <div class="dash-stat">
-                        <i class="fas fa-users"></i>
-                        <div>
-                            <span class="dash-stat-number" id="dashTotalUsers">0</span>
-                            <span class="dash-stat-label">مستخدمين مسجلين</span>
-                        </div>
-                    </div>
+            <header class="admin-topbar">
+                <div>
+                    <h1 id="adminPageTitle">لوحة التحكم</h1>
+                    <p>إدارة كاملة لمنصة ديارنا العقارية.</p>
                 </div>
-            </div>
+                <div class="topbar-actions">
+                    <button type="button" class="btn btn-secondary" onclick="refreshAdminData()">
+                        <i class="fa-solid fa-rotate"></i>
+                        <span>تحديث البيانات</span>
+                    </button>
+                </div>
+            </header>
 
-            <!-- Properties Tab -->
-            <div class="tab-content" id="tab-properties">
-                <div class="page-header">
-                    <h2 class="page-title">العقارات المعتمدة</h2>
-                    <button class="btn-add" onclick="openAddPropertyModal()"><i class="fas fa-plus"></i> إضافة عقار</button>
+            <section id="tab-dashboard" class="tab-content active">
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon"><i class="fa-solid fa-house"></i></div>
+                        <div>
+                            <span class="stat-value" id="totalPropertiesCount">0</span>
+                            <span class="stat-label">إجمالي العقارات</span>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon"><i class="fa-solid fa-hourglass-half"></i></div>
+                        <div>
+                            <span class="stat-value" id="pendingPropertiesCount">0</span>
+                            <span class="stat-label">العقارات المعلقة</span>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon"><i class="fa-solid fa-calendar-days"></i></div>
+                        <div>
+                            <span class="stat-value" id="pendingVisitsCount">0</span>
+                            <span class="stat-label">الزيارات المعلقة</span>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon"><i class="fa-solid fa-comments"></i></div>
+                        <div>
+                            <span class="stat-value" id="activeChatsCount">0</span>
+                            <span class="stat-label">المحادثات النشطة</span>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon"><i class="fa-solid fa-user-group"></i></div>
+                        <div>
+                            <span class="stat-value" id="totalUsersCount">0</span>
+                            <span class="stat-label">إجمالي المستخدمين</span>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon"><i class="fa-solid fa-user-tie"></i></div>
+                        <div>
+                            <span class="stat-value" id="totalEmployeesCount">0</span>
+                            <span class="stat-label">إجمالي الموظفين</span>
+                        </div>
+                    </div>
                 </div>
-                <div class="table-container">
-                    <table class="data-table">
+
+                <div class="dashboard-grid">
+                    <section class="dashboard-card">
+                        <div class="section-head">
+                            <h2>ملخص سريع</h2>
+                            <span class="muted">نظرة عامة على المنصة</span>
+                        </div>
+                        <ul class="summary-list">
+                            <li><span>المجمعات المميزة</span><strong>3</strong></li>
+                            <li><span>طلبات الزيارة بانتظار الجدولة</span><strong id="dashboardVisitsPending">0</strong></li>
+                            <li><span>المحادثات المفتوحة الآن</span><strong id="dashboardChatsOpen">0</strong></li>
+                            <li><span>العقارات الموافق عليها</span><strong id="dashboardApprovedProperties">0</strong></li>
+                        </ul>
+                    </section>
+                    <section class="dashboard-card">
+                        <div class="section-head">
+                            <h2>تنبيهات الإدارة</h2>
+                            <span class="muted">أهم العناصر التي تحتاج متابعة</span>
+                        </div>
+                        <div id="dashboardAlerts" class="stack-list">
+                            <div class="empty-state small">لا توجد تنبيهات حالياً.</div>
+                        </div>
+                    </section>
+                </div>
+            </section>
+
+            <section id="tab-compounds" class="tab-content hidden">
+                <div class="section-head with-actions">
+                    <div>
+                        <h2>إدارة المجمعات المميزة</h2>
+                        <p>المجمعات المعتمدة: النخيل، الأرز، الليمون.</p>
+                    </div>
+                </div>
+
+                <div class="premium-compounds-grid">
+                    <article class="mini-card" id="compoundCardNakhil">
+                        <h3>النخيل</h3>
+                        <p>مجمع فاخر قابل للتحديث من خلال نموذج الإدارة.</p>
+                        <button type="button" class="btn btn-secondary" onclick="editCompoundByName('النخيل')">تعديل</button>
+                    </article>
+                    <article class="mini-card" id="compoundCardArz">
+                        <h3>الأرز</h3>
+                        <p>إدارة تفاصيل الوحدات والمرافق والصور بسهولة.</p>
+                        <button type="button" class="btn btn-secondary" onclick="editCompoundByName('الأرز')">تعديل</button>
+                    </article>
+                    <article class="mini-card" id="compoundCardLimon">
+                        <h3>الليمون</h3>
+                        <p>تحديث الأسعار وتاريخ الإنجاز وترتيب العرض.</p>
+                        <button type="button" class="btn btn-secondary" onclick="editCompoundByName('الليمون')">تعديل</button>
+                    </article>
+                </div>
+
+                <div class="admin-grid two-columns">
+                    <section class="panel-card">
+                        <div class="section-head">
+                            <h3>إضافة / تعديل مجمع</h3>
+                            <button type="button" class="btn btn-light" onclick="resetCompoundForm()">تفريغ النموذج</button>
+                        </div>
+                        <form id="compoundForm" class="admin-form" onsubmit="saveCompound(event)">
+                            <input type="hidden" id="compoundId" name="compoundId">
+                            <div class="form-row two-cols">
+                                <div class="form-group">
+                                    <label for="compoundName">اسم المجمع</label>
+                                    <input type="text" id="compoundName" name="compoundName" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="compoundCity">المدينة</label>
+                                    <input type="text" id="compoundCity" name="compoundCity" required>
+                                </div>
+                            </div>
+                            <div class="form-row two-cols">
+                                <div class="form-group">
+                                    <label for="compoundArea">المنطقة</label>
+                                    <input type="text" id="compoundArea" name="compoundArea" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="compoundOrder">رقم الترتيب</label>
+                                    <input type="number" id="compoundOrder" name="compoundOrder" min="1" required>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label for="compoundShortDescription">وصف قصير</label>
+                                <input type="text" id="compoundShortDescription" name="compoundShortDescription" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="compoundDescription">الوصف الكامل</label>
+                                <textarea id="compoundDescription" name="compoundDescription" rows="5" required></textarea>
+                            </div>
+                            <div class="form-row three-cols">
+                                <div class="form-group">
+                                    <label for="compoundTotalUnits">إجمالي الوحدات</label>
+                                    <input type="number" id="compoundTotalUnits" name="compoundTotalUnits" min="0" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="compoundStartingPrice">السعر الابتدائي</label>
+                                    <input type="number" id="compoundStartingPrice" name="compoundStartingPrice" min="0" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="compoundCompletionDate">تاريخ الإنجاز</label>
+                                    <input type="date" id="compoundCompletionDate" name="compoundCompletionDate" required>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label for="compoundAmenities">المرافق (مفصولة بفواصل)</label>
+                                <input type="text" id="compoundAmenities" name="compoundAmenities" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="compoundImageFiles">رفع صور المجمع</label>
+                                <input type="file" id="compoundImageFiles" name="compoundImageFiles" accept="image/*" multiple>
+                            </div>
+                            <div class="form-group">
+                                <label for="compoundImageUrls">روابط الصور</label>
+                                <textarea id="compoundImageUrls" name="compoundImageUrls" rows="3"></textarea>
+                            </div>
+                            <div class="form-actions">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fa-solid fa-floppy-disk"></i>
+                                    <span>حفظ المجمع</span>
+                                </button>
+                                <button type="button" class="btn btn-danger" onclick="deleteSelectedCompound()">
+                                    <i class="fa-solid fa-trash"></i>
+                                    <span>حذف المجمع</span>
+                                </button>
+                            </div>
+                        </form>
+                    </section>
+
+                    <section class="panel-card">
+                        <div class="section-head">
+                            <h3>قائمة المجمعات</h3>
+                            <span class="muted">عرض وترتيب المجمعات المميزة</span>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="data-table" id="compoundsTable">
+                                <thead>
+                                    <tr>
+                                        <th>الاسم</th>
+                                        <th>المدينة</th>
+                                        <th>المنطقة</th>
+                                        <th>الوحدات</th>
+                                        <th>السعر الابتدائي</th>
+                                        <th>الترتيب</th>
+                                        <th>الإجراءات</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="compoundsTableBody">
+                                    <tr>
+                                        <td>النخيل</td>
+                                        <td>رام الله</td>
+                                        <td>الماصيون</td>
+                                        <td>0</td>
+                                        <td>0</td>
+                                        <td>1</td>
+                                        <td class="actions-cell">
+                                            <button type="button" class="btn btn-light" onclick="editCompoundByName('النخيل')">تعديل</button>
+                                            <button type="button" class="btn btn-danger" onclick="removeCompoundByName('النخيل')">حذف</button>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>الأرز</td>
+                                        <td>نابلس</td>
+                                        <td>رفيديا</td>
+                                        <td>0</td>
+                                        <td>0</td>
+                                        <td>2</td>
+                                        <td class="actions-cell">
+                                            <button type="button" class="btn btn-light" onclick="editCompoundByName('الأرز')">تعديل</button>
+                                            <button type="button" class="btn btn-danger" onclick="removeCompoundByName('الأرز')">حذف</button>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>الليمون</td>
+                                        <td>بيت لحم</td>
+                                        <td>بيت ساحور</td>
+                                        <td>0</td>
+                                        <td>0</td>
+                                        <td>3</td>
+                                        <td class="actions-cell">
+                                            <button type="button" class="btn btn-light" onclick="editCompoundByName('الليمون')">تعديل</button>
+                                            <button type="button" class="btn btn-danger" onclick="removeCompoundByName('الليمون')">حذف</button>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </section>
+                </div>
+            </section>
+
+            <section id="tab-properties" class="tab-content hidden">
+                <div class="section-head with-actions">
+                    <div>
+                        <h2>العقارات المعتمدة</h2>
+                        <p>إدارة جميع العقارات المنشورة على المنصة.</p>
+                    </div>
+                    <button type="button" class="btn btn-primary" id="addPropertyBtn" onclick="openAddPropertyModal()">
+                        <i class="fa-solid fa-plus"></i>
+                        <span>إضافة عقار</span>
+                    </button>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="data-table" id="propertiesTable">
                         <thead>
                             <tr>
-                                <th>العنوان</th>
+                                <th>العقار</th>
                                 <th>النوع</th>
                                 <th>المدينة</th>
                                 <th>السعر</th>
-                                <th>الغرض</th>
-                                <th>إجراءات</th>
+                                <th>المجمع</th>
+                                <th>الحالة</th>
+                                <th>الإجراءات</th>
                             </tr>
                         </thead>
-                        <tbody id="propertiesTableBody"></tbody>
+                        <tbody id="propertiesTableBody">
+                            <tr>
+                                <td colspan="7" class="empty-row">لا توجد عقارات معتمدة بعد.</td>
+                            </tr>
+                        </tbody>
                     </table>
                 </div>
-            </div>
+            </section>
 
-            <!-- Pending Properties Tab -->
-            <div class="tab-content" id="tab-pending">
-                <h2 class="page-title">عقارات بانتظار الموافقة</h2>
-                <div class="cards-grid" id="pendingPropertiesGrid"></div>
-            </div>
-
-            <!-- Visit Requests Tab -->
-            <div class="tab-content" id="tab-visits">
-                <h2 class="page-title">طلبات المعاينة</h2>
-                <div class="visits-filters">
-                    <button class="visit-filter active" onclick="filterVisits('all')">الكل</button>
-                    <button class="visit-filter" onclick="filterVisits('pending')">معلقة</button>
-                    <button class="visit-filter" onclick="filterVisits('accepted')">مقبولة</button>
-                    <button class="visit-filter" onclick="filterVisits('completed')">مكتملة</button>
-                    <button class="visit-filter" onclick="filterVisits('cancelled')">ملغاة</button>
-                </div>
-                <div class="cards-grid" id="visitsGrid"></div>
-            </div>
-
-            <!-- Chats Tab -->
-            <div class="tab-content" id="tab-chats">
-                <h2 class="page-title">المحادثات</h2>
-                <div class="chat-layout">
-                    <div class="chat-list" id="chatList">
-                        <p class="empty-chat-list">لا توجد محادثات</p>
-                    </div>
-                    <div class="chat-window" id="chatWindow">
-                        <div class="chat-window-header" id="chatWindowHeader">
-                            <p>اختر محادثة للبدء</p>
-                        </div>
-                        <div class="chat-window-messages" id="chatWindowMessages"></div>
-                        <div class="chat-window-input hidden" id="chatWindowInput">
-                            <input type="text" id="employeeChatInput" placeholder="اكتب ردك..." onkeypress="if(event.key==='Enter')sendEmployeeMessage()">
-                            <button onclick="sendEmployeeMessage()"><i class="fas fa-paper-plane"></i></button>
-                        </div>
+            <section id="tab-pending" class="tab-content hidden">
+                <div class="section-head">
+                    <div>
+                        <h2>العقارات المعلقة</h2>
+                        <p>راجع الطلبات الجديدة قبل نشرها.</p>
                     </div>
                 </div>
-            </div>
+                <div id="pendingPropertiesList" class="cards-grid">
+                    <div class="empty-state">لا توجد طلبات عقارات معلقة حالياً.</div>
+                </div>
+            </section>
 
-            <!-- Contacts Tab -->
-            <div class="tab-content" id="tab-contacts">
-                <h2 class="page-title">رسائل التواصل</h2>
-                <div class="table-container">
-                    <table class="data-table">
+            <section id="tab-visits" class="tab-content hidden">
+                <div class="section-head with-actions">
+                    <div>
+                        <h2>طلبات الزيارة</h2>
+                        <p>إدارة مواعيد زيارة العقارات وتحديث حالتها.</p>
+                    </div>
+                    <div class="filter-group" id="visitFilters">
+                        <button type="button" class="filter-btn active" id="filterVisitsAll" onclick="filterVisitRequests('all')">الكل</button>
+                        <button type="button" class="filter-btn" id="filterVisitsPending" onclick="filterVisitRequests('pending')">قيد الانتظار</button>
+                        <button type="button" class="filter-btn" id="filterVisitsAccepted" onclick="filterVisitRequests('accepted')">مقبولة</button>
+                        <button type="button" class="filter-btn" id="filterVisitsCompleted" onclick="filterVisitRequests('completed')">مكتملة</button>
+                        <button type="button" class="filter-btn" id="filterVisitsCancelled" onclick="filterVisitRequests('cancelled')">ملغاة</button>
+                    </div>
+                </div>
+                <div id="visitRequestsList" class="cards-grid">
+                    <div class="empty-state">لا توجد طلبات زيارة متاحة الآن.</div>
+                </div>
+            </section>
+
+            <section id="tab-chats" class="tab-content hidden">
+                <div class="section-head">
+                    <div>
+                        <h2>إدارة المحادثات</h2>
+                        <p>متابعة محادثات العملاء والرد عليها مباشرة.</p>
+                    </div>
+                </div>
+                <div class="chat-admin-layout">
+                    <aside class="chat-sidebar">
+                        <div class="chat-sidebar-head">
+                            <h3>قائمة المحادثات</h3>
+                            <span class="badge" id="chatListCount">0</span>
+                        </div>
+                        <div id="chatsList" class="chat-list">
+                            <div class="empty-state small">لا توجد محادثات نشطة.</div>
+                        </div>
+                    </aside>
+                    <div class="chat-window">
+                        <div class="chat-window-head">
+                            <div>
+                                <h3 id="activeChatName">اختر محادثة</h3>
+                                <p id="activeChatMeta">ستظهر تفاصيل العميل هنا.</p>
+                            </div>
+                        </div>
+                        <div id="noActiveChatState" class="empty-state">اختر محادثة من القائمة لعرض الرسائل والرد.</div>
+                        <div id="activeChatMessages" class="chat-messages hidden"></div>
+                        <form id="chatReplyForm" class="chat-reply-form hidden" onsubmit="sendAdminReply(event)">
+                            <input type="hidden" id="activeChatId" name="activeChatId">
+                            <div class="reply-input-group">
+                                <input type="text" id="chatReplyInput" name="chatReplyInput" placeholder="اكتب ردك هنا" required>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fa-solid fa-paper-plane"></i>
+                                    <span>إرسال</span>
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </section>
+
+            <section id="tab-contacts" class="tab-content hidden">
+                <div class="section-head">
+                    <div>
+                        <h2>رسائل التواصل</h2>
+                        <p>جميع الرسائل الواردة من نموذج التواصل.</p>
+                    </div>
+                </div>
+                <div class="table-responsive">
+                    <table class="data-table" id="contactsTable">
                         <thead>
                             <tr>
                                 <th>الاسم</th>
                                 <th>الهاتف</th>
+                                <th>البريد الإلكتروني</th>
+                                <th>الموضوع</th>
                                 <th>الرسالة</th>
                                 <th>التاريخ</th>
-                                <th>الحالة</th>
                             </tr>
                         </thead>
-                        <tbody id="contactsTableBody"></tbody>
+                        <tbody id="contactsTableBody">
+                            <tr>
+                                <td colspan="6" class="empty-row">لا توجد رسائل تواصل محفوظة.</td>
+                            </tr>
+                        </tbody>
                     </table>
                 </div>
-            </div>
+            </section>
 
-            <!-- Users Tab -->
-            <div class="tab-content" id="tab-users">
-                <h2 class="page-title">المستخدمين المسجلين</h2>
-                <div class="table-container">
-                    <table class="data-table">
+            <section id="tab-employees" class="tab-content hidden">
+                <div class="section-head with-actions">
+                    <div>
+                        <h2>إدارة الموظفين</h2>
+                        <p>إنشاء حسابات الموظفين وتحديثها وإعادة تعيين كلمات المرور.</p>
+                    </div>
+                    <button type="button" class="btn btn-primary" id="addEmployeeBtn" onclick="openEmployeeModal()">
+                        <i class="fa-solid fa-user-plus"></i>
+                        <span>إضافة موظف</span>
+                    </button>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="data-table" id="employeesTable">
+                        <thead>
+                            <tr>
+                                <th>الاسم</th>
+                                <th>اسم المستخدم</th>
+                                <th>الدور</th>
+                                <th>الحالة</th>
+                                <th>الإجراءات</th>
+                            </tr>
+                        </thead>
+                        <tbody id="employeesTableBody">
+                            <tr>
+                                <td colspan="5" class="empty-row">لا توجد حسابات موظفين محفوظة.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section id="tab-users" class="tab-content hidden">
+                <div class="section-head">
+                    <div>
+                        <h2>المستخدمون المشترون</h2>
+                        <p>إدارة حسابات المشترين المسجلين على المنصة.</p>
+                    </div>
+                </div>
+                <div class="table-responsive">
+                    <table class="data-table" id="usersTable">
                         <thead>
                             <tr>
                                 <th>الاسم</th>
                                 <th>الهاتف</th>
-                                <th>البريد</th>
+                                <th>البريد الإلكتروني</th>
                                 <th>تاريخ التسجيل</th>
+                                <th>الإجراءات</th>
                             </tr>
                         </thead>
-                        <tbody id="usersTableBody"></tbody>
+                        <tbody id="usersTableBody">
+                            <tr>
+                                <td colspan="5" class="empty-row">لا يوجد مستخدمون مسجلون حالياً.</td>
+                            </tr>
+                        </tbody>
                     </table>
                 </div>
-            </div>
+            </section>
         </main>
     </div>
 
-    <!-- Add/Edit Property Modal -->
-    <div class="modal-overlay hidden" id="addPropertyModal">
-        <div class="modal large-modal">
+    <div id="addPropertyModal" class="modal-overlay hidden">
+        <div class="modal modal-large">
             <div class="modal-header">
-                <h3 id="propertyModalTitle">إضافة عقار جديد</h3>
-                <button class="modal-close" onclick="closeAddPropertyModal()">&times;</button>
+                <h2 id="propertyModalTitle">إضافة / تعديل عقار</h2>
+                <button type="button" class="modal-close" onclick="closePropertyModal()">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
             </div>
-            <form id="adminPropertyForm" onsubmit="saveAdminProperty(event)">
-                <input type="hidden" id="editPropertyId" value="">
-                <div class="form-row">
+            <form id="propertyForm" class="admin-form" onsubmit="saveProperty(event)">
+                <input type="hidden" id="propertyId" name="propertyId">
+                <div class="form-row two-cols">
                     <div class="form-group">
-                        <label>عنوان العقار *</label>
-                        <input type="text" id="adminPropTitle" required>
+                        <label for="propertyTitle">عنوان العقار</label>
+                        <input type="text" id="propertyTitle" name="propertyTitle" required>
                     </div>
                     <div class="form-group">
-                        <label>النوع *</label>
-                        <select id="adminPropType" required>
-                            <option value="شقة">شقة</option>
-                            <option value="فيلا">فيلا</option>
-                            <option value="أرض">أرض</option>
-                            <option value="مكتب">مكتب تجاري</option>
-                            <option value="محل">محل تجاري</option>
-                            <option value="مستودع">مستودع</option>
-                            <option value="عمارة">عمارة سكنية</option>
-                            <option value="مزرعة">مزرعة</option>
+                        <label for="propertyCompound">المجمع السكني</label>
+                        <select id="propertyCompound" name="propertyCompound">
+                            <option value="">بدون مجمع</option>
+                            <option value="النخيل">النخيل</option>
+                            <option value="الأرز">الأرز</option>
+                            <option value="الليمون">الليمون</option>
                         </select>
                     </div>
                 </div>
-                <div class="form-row">
+                <div class="form-row three-cols">
                     <div class="form-group">
-                        <label>الغرض *</label>
-                        <select id="adminPropPurpose" required onchange="toggleAdminRentPeriod()">
+                        <label for="propertyType">نوع العقار</label>
+                        <select id="propertyType" name="propertyType" required>
+                            <option value="">اختر النوع</option>
+                            <option value="شقة">شقة</option>
+                            <option value="فيلا">فيلا</option>
+                            <option value="أرض">أرض</option>
+                            <option value="مكتب">مكتب</option>
+                            <option value="محل">محل</option>
+                            <option value="عمارة">عمارة</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="propertyPurpose">الغرض</label>
+                        <select id="propertyPurpose" name="propertyPurpose" required>
                             <option value="بيع">للبيع</option>
                             <option value="إيجار">للإيجار</option>
                         </select>
                     </div>
                     <div class="form-group">
-                        <label>السعر (₪) *</label>
-                        <input type="number" id="adminPropPrice" required>
+                        <label for="propertyPrice">السعر</label>
+                        <input type="number" id="propertyPrice" name="propertyPrice" min="0" required>
                     </div>
                 </div>
-                <div class="form-row hidden" id="adminRentPeriodRow">
+                <div class="form-row three-cols">
                     <div class="form-group">
-                        <label>فترة الإيجار</label>
-                        <select id="adminPropRentPeriod">
-                            <option value="شهري">شهري</option>
-                            <option value="سنوي">سنوي</option>
-                        </select>
-                    </div>
-                    <div class="form-group"></div>
-                </div>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>المدينة *</label>
-                        <select id="adminPropCity" required>
-                            <option value="رام الله">رام الله</option>
-                            <option value="نابلس">نابلس</option>
-                            <option value="الخليل">الخليل</option>
-                            <option value="بيت لحم">بيت لحم</option>
-                            <option value="جنين">جنين</option>
-                            <option value="طولكرم">طولكرم</option>
-                            <option value="قلقيلية">قلقيلية</option>
-                            <option value="أريحا">أريحا</option>
-                            <option value="القدس">القدس</option>
-                            <option value="غزة">غزة</option>
-                        </select>
+                        <label for="propertyCity">المدينة</label>
+                        <input type="text" id="propertyCity" name="propertyCity" required>
                     </div>
                     <div class="form-group">
-                        <label>الحي / المنطقة</label>
-                        <input type="text" id="adminPropArea">
+                        <label for="propertyArea">المنطقة</label>
+                        <input type="text" id="propertyArea" name="propertyArea" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="propertyAddress">العنوان</label>
+                        <input type="text" id="propertyAddress" name="propertyAddress">
                     </div>
                 </div>
-                <div class="form-row">
+                <div class="form-row four-cols">
                     <div class="form-group">
-                        <label>المساحة (م²)</label>
-                        <input type="number" id="adminPropSize">
+                        <label for="propertySize">المساحة (م²)</label>
+                        <input type="number" id="propertySize" name="propertySize" min="0" required>
                     </div>
                     <div class="form-group">
-                        <label>الغرف</label>
-                        <input type="number" id="adminPropBedrooms">
+                        <label for="propertyBedrooms">غرف النوم</label>
+                        <input type="number" id="propertyBedrooms" name="propertyBedrooms" min="0">
                     </div>
                     <div class="form-group">
-                        <label>الحمامات</label>
-                        <input type="number" id="adminPropBathrooms">
+                        <label for="propertyBathrooms">الحمامات</label>
+                        <input type="number" id="propertyBathrooms" name="propertyBathrooms" min="0">
                     </div>
                     <div class="form-group">
-                        <label>الطابق</label>
-                        <input type="number" id="adminPropFloor">
+                        <label for="propertyFloor">الطابق</label>
+                        <input type="number" id="propertyFloor" name="propertyFloor" min="0">
                     </div>
                 </div>
                 <div class="form-group">
-                    <label>الوصف</label>
-                    <textarea id="adminPropDescription" rows="3"></textarea>
+                    <label for="propertyDescription">وصف العقار</label>
+                    <textarea id="propertyDescription" name="propertyDescription" rows="5" required></textarea>
                 </div>
                 <div class="form-group">
-                    <label>صور (روابط أو base64)</label>
-                    <textarea id="adminPropImages" rows="2" placeholder="رابط لكل سطر"></textarea>
+                    <label for="propertyAmenities">المميزات (مفصولة بفواصل)</label>
+                    <input type="text" id="propertyAmenities" name="propertyAmenities">
                 </div>
                 <div class="form-group">
-                    <label>رفع صور</label>
-                    <input type="file" id="adminPropImageFiles" multiple accept="image/*" onchange="handleAdminImageUpload(event)">
-                    <div class="admin-image-previews" id="adminImagePreviews"></div>
+                    <label for="propertyImageFiles">رفع الصور</label>
+                    <input type="file" id="propertyImageFiles" name="propertyImageFiles" accept="image/*" multiple>
                 </div>
-                <button type="submit" class="btn-save">حفظ العقار</button>
+                <div class="form-group">
+                    <label for="propertyImageUrls">روابط الصور</label>
+                    <textarea id="propertyImageUrls" name="propertyImageUrls" rows="3"></textarea>
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fa-solid fa-floppy-disk"></i>
+                        <span>حفظ العقار</span>
+                    </button>
+                    <button type="button" class="btn btn-secondary" onclick="closePropertyModal()">
+                        <i class="fa-solid fa-ban"></i>
+                        <span>إلغاء</span>
+                    </button>
+                </div>
             </form>
         </div>
     </div>
 
-    <!-- Schedule Visit Modal -->
-    <div class="modal-overlay hidden" id="scheduleModal">
+    <div id="scheduleModal" class="modal-overlay hidden">
         <div class="modal">
             <div class="modal-header">
-                <h3>جدولة المعاينة</h3>
-                <button class="modal-close" onclick="closeScheduleModal()">&times;</button>
+                <h2>جدولة الزيارة</h2>
+                <button type="button" class="modal-close" onclick="closeScheduleModal()">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
             </div>
-            <form onsubmit="confirmSchedule(event)">
-                <input type="hidden" id="scheduleVisitId" value="">
+            <form id="scheduleVisitForm" class="admin-form" onsubmit="saveVisitSchedule(event)">
+                <input type="hidden" id="scheduleVisitId" name="scheduleVisitId">
                 <div class="form-group">
-                    <label>التاريخ *</label>
-                    <input type="date" id="scheduleDate" required>
+                    <label for="scheduleDate">التاريخ</label>
+                    <input type="date" id="scheduleDate" name="scheduleDate" required>
                 </div>
                 <div class="form-group">
-                    <label>الوقت *</label>
-                    <input type="time" id="scheduleTime" required>
+                    <label for="scheduleTime">الوقت</label>
+                    <input type="time" id="scheduleTime" name="scheduleTime" required>
                 </div>
                 <div class="form-group">
-                    <label>ملاحظات للعميل</label>
-                    <textarea id="scheduleNotes" rows="3" placeholder="مثال: يرجى إحضار بطاقة الهوية..."></textarea>
+                    <label for="scheduleNotes">ملاحظات</label>
+                    <textarea id="scheduleNotes" name="scheduleNotes" rows="4"></textarea>
                 </div>
-                <button type="submit" class="btn-save">تأكيد الموعد</button>
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fa-solid fa-calendar-plus"></i>
+                        <span>حفظ الموعد</span>
+                    </button>
+                    <button type="button" class="btn btn-secondary" onclick="closeScheduleModal()">
+                        <i class="fa-solid fa-ban"></i>
+                        <span>إلغاء</span>
+                    </button>
+                </div>
             </form>
         </div>
     </div>
 
-    <!-- Scripts -->
+    <div id="employeeModal" class="modal-overlay hidden">
+        <div class="modal">
+            <div class="modal-header">
+                <h2 id="employeeModalTitle">إضافة / تعديل موظف</h2>
+                <button type="button" class="modal-close" onclick="closeEmployeeModal()">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <form id="employeeForm" class="admin-form" onsubmit="saveEmployee(event)">
+                <input type="hidden" id="employeeId" name="employeeId">
+                <div class="form-group">
+                    <label for="employeeName">اسم الموظف</label>
+                    <input type="text" id="employeeName" name="employeeName" required>
+                </div>
+                <div class="form-group">
+                    <label for="employeeUsername">اسم المستخدم</label>
+                    <input type="text" id="employeeUsername" name="employeeUsername" required>
+                </div>
+                <div class="form-group">
+                    <label for="employeePassword">كلمة المرور</label>
+                    <input type="password" id="employeePassword" name="employeePassword" autocomplete="new-password" required>
+                </div>
+                <div class="form-group">
+                    <label for="employeeRole">الدور</label>
+                    <select id="employeeRole" name="employeeRole" required>
+                        <option value="sales">مبيعات</option>
+                        <option value="property_manager">مدير عقارات</option>
+                        <option value="compound_manager">مدير مجمعات</option>
+                    </select>
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fa-solid fa-floppy-disk"></i>
+                        <span>حفظ الموظف</span>
+                    </button>
+                    <button type="button" class="btn btn-secondary" onclick="closeEmployeeModal()">
+                        <i class="fa-solid fa-ban"></i>
+                        <span>إلغاء</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <template id="compoundRowTemplate">
+        <tr>
+            <td class="compound-name"></td>
+            <td class="compound-city"></td>
+            <td class="compound-area"></td>
+            <td class="compound-units"></td>
+            <td class="compound-price"></td>
+            <td class="compound-order"></td>
+            <td class="actions-cell">
+                <button type="button" class="btn btn-light action-edit-compound">تعديل</button>
+                <button type="button" class="btn btn-danger action-delete-compound">حذف</button>
+            </td>
+        </tr>
+    </template>
+
+    <template id="propertyRowTemplate">
+        <tr>
+            <td class="property-title"></td>
+            <td class="property-type"></td>
+            <td class="property-city"></td>
+            <td class="property-price"></td>
+            <td class="property-compound"></td>
+            <td><span class="status-badge property-status"></span></td>
+            <td class="actions-cell">
+                <button type="button" class="btn btn-light action-edit-property">تعديل</button>
+                <button type="button" class="btn btn-danger action-delete-property">حذف</button>
+            </td>
+        </tr>
+    </template>
+
+    <template id="pendingPropertyCardTemplate">
+        <article class="admin-card pending-property-card">
+            <div class="card-head">
+                <div>
+                    <h3 class="pending-property-title"></h3>
+                    <p class="pending-property-meta"></p>
+                </div>
+                <span class="status-badge warning">معلق</span>
+            </div>
+            <p class="pending-property-description"></p>
+            <div class="card-details">
+                <span class="pending-property-price"></span>
+                <span class="pending-property-owner"></span>
+            </div>
+            <div class="card-actions">
+                <button type="button" class="btn btn-primary action-approve-property">اعتماد</button>
+                <button type="button" class="btn btn-light action-edit-pending-property">تعديل</button>
+                <button type="button" class="btn btn-danger action-reject-property">رفض</button>
+            </div>
+        </article>
+    </template>
+
+    <template id="visitRequestCardTemplate">
+        <article class="admin-card visit-card">
+            <div class="card-head">
+                <div>
+                    <h3 class="visit-property-title"></h3>
+                    <p class="visit-user-name"></p>
+                </div>
+                <span class="status-badge visit-status-badge"></span>
+            </div>
+            <div class="card-details stacked">
+                <span class="visit-phone"></span>
+                <span class="visit-schedule"></span>
+                <span class="visit-notes"></span>
+            </div>
+            <div class="card-actions">
+                <button type="button" class="btn btn-primary action-schedule-visit">جدولة</button>
+                <button type="button" class="btn btn-success action-complete-visit">إكمال</button>
+                <button type="button" class="btn btn-danger action-cancel-visit">إلغاء</button>
+                <a href="#" class="btn btn-light action-whatsapp-visit" target="_blank" rel="noopener">واتساب</a>
+            </div>
+        </article>
+    </template>
+
+    <template id="chatListItemTemplate">
+        <button type="button" class="chat-list-item">
+            <div>
+                <strong class="chat-item-name"></strong>
+                <p class="chat-item-last-message"></p>
+            </div>
+            <span class="chat-item-time"></span>
+        </button>
+    </template>
+
+    <template id="chatMessageTemplate">
+        <div class="chat-message">
+            <div class="chat-message-bubble"></div>
+            <span class="chat-message-time"></span>
+        </div>
+    </template>
+
+    <template id="contactRowTemplate">
+        <tr>
+            <td class="contact-name"></td>
+            <td class="contact-phone"></td>
+            <td class="contact-email"></td>
+            <td class="contact-subject"></td>
+            <td class="contact-message"></td>
+            <td class="contact-date"></td>
+        </tr>
+    </template>
+
+    <template id="employeeRowTemplate">
+        <tr>
+            <td class="employee-name"></td>
+            <td class="employee-username"></td>
+            <td class="employee-role"></td>
+            <td><span class="status-badge employee-status"></span></td>
+            <td class="actions-cell">
+                <button type="button" class="btn btn-light action-edit-employee">تعديل</button>
+                <button type="button" class="btn btn-warning action-reset-employee-password">إعادة تعيين كلمة المرور</button>
+                <button type="button" class="btn btn-danger action-remove-employee">حذف</button>
+            </td>
+        </tr>
+    </template>
+
+    <template id="userRowTemplate">
+        <tr>
+            <td class="user-name"></td>
+            <td class="user-phone"></td>
+            <td class="user-email"></td>
+            <td class="user-date"></td>
+            <td class="actions-cell">
+                <button type="button" class="btn btn-warning action-reset-user-password">إعادة تعيين كلمة المرور</button>
+                <button type="button" class="btn btn-danger action-remove-user">حذف الحساب</button>
+            </td>
+        </tr>
+    </template>
+
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
     <script src="firebase-config.js"></script>

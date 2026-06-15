@@ -14,10 +14,10 @@
         <div class="nav-container">
             <a href="#" class="nav-logo">
                 <img src="logo.png" alt="ديارنا" class="logo-img">
-                <span class="logo-text">ديارنا</span>
             </a>
             <ul class="nav-links">
                 <li><a href="#home">الرئيسية</a></li>
+                <li><a href="#compounds">مجمعاتنا</a></li>
                 <li><a href="#properties">العقارات</a></li>
                 <li><a href="#list-property">اعرض عقارك</a></li>
                 <li><a href="#about">من نحن</a></li>
@@ -27,7 +27,7 @@
                 <button class="btn-auth" id="authBtn" onclick="openAuthModal()">
                     <i class="fas fa-user"></i> تسجيل الدخول
                 </button>
-                <button class="btn-chat hidden" id="chatBtn" onclick="openChat()">
+                <button class="btn-chat hidden" id="chatBtn" onclick="toggleChatWidget()">
                     <i class="fas fa-comments"></i>
                     <span class="chat-badge hidden" id="chatBadge">0</span>
                 </button>
@@ -42,6 +42,7 @@
         </div>
         <div class="mobile-menu hidden" id="mobileMenu">
             <a href="#home" onclick="toggleMobileMenu()">الرئيسية</a>
+            <a href="#compounds" onclick="toggleMobileMenu()">مجمعاتنا</a>
             <a href="#properties" onclick="toggleMobileMenu()">العقارات</a>
             <a href="#list-property" onclick="toggleMobileMenu()">اعرض عقارك</a>
             <a href="#about" onclick="toggleMobileMenu()">من نحن</a>
@@ -53,8 +54,8 @@
     <section id="home" class="hero">
         <div class="hero-overlay"></div>
         <div class="hero-content">
-            <h1>ديارنا للتطوير العقاري والاستثمار</h1>
-            <p class="hero-subtitle">شريكك الموثوق في عالم العقارات الفلسطينية</p>
+            <img src="logo.png" alt="ديارنا" class="hero-logo">
+            <h1>شريكك الموثوق في عالم العقارات</h1>
             <p class="hero-tagline">بيع · شراء · استثمار · تأجير</p>
             <div class="hero-search">
                 <select id="heroType">
@@ -91,33 +92,38 @@
         </div>
     </section>
 
-    <!-- Stats Section -->
+    <!-- Stats -->
     <section class="stats-section">
         <div class="container">
             <div class="stats-grid">
-                <div class="stat-card">
-                    <i class="fas fa-building"></i>
-                    <span class="stat-number" id="statProperties">0</span>
-                    <span class="stat-label">عقار متاح</span>
-                </div>
-                <div class="stat-card">
-                    <i class="fas fa-handshake"></i>
-                    <span class="stat-number" id="statDeals">150+</span>
-                    <span class="stat-label">صفقة ناجحة</span>
-                </div>
-                <div class="stat-card">
-                    <i class="fas fa-users"></i>
-                    <span class="stat-number" id="statClients">500+</span>
-                    <span class="stat-label">عميل سعيد</span>
-                </div>
-                <div class="stat-card">
-                    <i class="fas fa-map-marker-alt"></i>
-                    <span class="stat-number">10+</span>
-                    <span class="stat-label">مدينة نغطيها</span>
-                </div>
+                <div class="stat-card"><i class="fas fa-building"></i><span class="stat-number" id="statProperties">0</span><span class="stat-label">عقار متاح</span></div>
+                <div class="stat-card"><i class="fas fa-handshake"></i><span class="stat-number">150+</span><span class="stat-label">صفقة ناجحة</span></div>
+                <div class="stat-card"><i class="fas fa-users"></i><span class="stat-number">500+</span><span class="stat-label">عميل سعيد</span></div>
+                <div class="stat-card"><i class="fas fa-map-marker-alt"></i><span class="stat-number">10+</span><span class="stat-label">مدينة نغطيها</span></div>
             </div>
         </div>
     </section>
+
+    <!-- Featured Compounds Section -->
+    <section id="compounds" class="compounds-section">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">مجمعاتنا السكنية</h2>
+                <p class="section-subtitle">مشاريع حصرية من تطوير شركة ديارنا بأعلى معايير الجودة والرفاهية</p>
+            </div>
+            <div class="compounds-showcase" id="compoundsShowcase">
+                <!-- Loaded dynamically -->
+            </div>
+        </div>
+    </section>
+
+    <!-- Compound Detail Modal (full-page feel) -->
+    <div class="modal-overlay hidden" id="compoundModal">
+        <div class="modal compound-modal">
+            <button class="modal-close" onclick="closeCompoundModal()">&times;</button>
+            <div id="compoundModalContent"></div>
+        </div>
+    </div>
 
     <!-- Properties Section -->
     <section id="properties" class="properties-section">
@@ -125,86 +131,24 @@
             <h2 class="section-title">العقارات المتاحة</h2>
             <p class="section-subtitle">اكتشف أفضل العروض العقارية في فلسطين</p>
 
-            <!-- Filters -->
-            <div class="filters-bar">
-                <div class="filter-group">
-                    <select id="filterType" onchange="applyFilters()">
-                        <option value="">كل الأنواع</option>
-                        <option value="شقة">شقة</option>
-                        <option value="فيلا">فيلا</option>
-                        <option value="أرض">أرض</option>
-                        <option value="مكتب">مكتب تجاري</option>
-                        <option value="محل">محل تجاري</option>
-                        <option value="مستودع">مستودع</option>
+            <!-- Sort Bar -->
+            <div class="sort-bar">
+                <span class="results-count" id="resultsCount">0 نتيجة</span>
+                <div class="sort-options">
+                    <label>ترتيب حسب:</label>
+                    <select id="sortBy" onchange="applySort()">
+                        <option value="newest">الأحدث</option>
+                        <option value="price-asc">السعر: من الأقل</option>
+                        <option value="price-desc">السعر: من الأعلى</option>
+                        <option value="size-desc">المساحة: من الأكبر</option>
+                        <option value="size-asc">المساحة: من الأصغر</option>
                     </select>
                 </div>
-                <div class="filter-group">
-                    <select id="filterCity" onchange="applyFilters()">
-                        <option value="">كل المدن</option>
-                        <option value="رام الله">رام الله</option>
-                        <option value="نابلس">نابلس</option>
-                        <option value="الخليل">الخليل</option>
-                        <option value="بيت لحم">بيت لحم</option>
-                        <option value="جنين">جنين</option>
-                        <option value="طولكرم">طولكرم</option>
-                        <option value="قلقيلية">قلقيلية</option>
-                        <option value="أريحا">أريحا</option>
-                        <option value="القدس">القدس</option>
-                        <option value="غزة">غزة</option>
-                    </select>
-                </div>
-                <div class="filter-group">
-                    <select id="filterPurpose" onchange="applyFilters()">
-                        <option value="">بيع وإيجار</option>
-                        <option value="بيع">للبيع</option>
-                        <option value="إيجار">للإيجار</option>
-                    </select>
-                </div>
-                <div class="filter-group">
-                    <select id="filterPrice" onchange="applyFilters()">
-                        <option value="">كل الأسعار</option>
-                        <optgroup label="أسعار البيع">
-                            <option value="0-100000">أقل من 100,000 ₪</option>
-                            <option value="100000-300000">100,000 - 300,000 ₪</option>
-                            <option value="300000-500000">300,000 - 500,000 ₪</option>
-                            <option value="500000-1000000">500,000 - 1,000,000 ₪</option>
-                            <option value="1000000-99999999">أكثر من 1,000,000 ₪</option>
-                        </optgroup>
-                        <optgroup label="أسعار الإيجار (شهري)">
-                            <option value="0-1500">أقل من 1,500 ₪/شهر</option>
-                            <option value="1500-3000">1,500 - 3,000 ₪/شهر</option>
-                            <option value="3000-5000">3,000 - 5,000 ₪/شهر</option>
-                            <option value="5000-10000">5,000 - 10,000 ₪/شهر</option>
-                            <option value="10000-99999999">أكثر من 10,000 ₪/شهر</option>
-                        </optgroup>
-                    </select>
-                </div>
-                <div class="filter-group">
-                    <select id="filterBedrooms" onchange="applyFilters()">
-                        <option value="">عدد الغرف</option>
-                        <option value="1">1 غرفة</option>
-                        <option value="2">2 غرف</option>
-                        <option value="3">3 غرف</option>
-                        <option value="4">4 غرف</option>
-                        <option value="5">5+ غرف</option>
-                    </select>
-                </div>
-                <button class="btn-reset-filters" onclick="resetFilters()">
-                    <i class="fas fa-redo"></i> إعادة تعيين
-                </button>
             </div>
 
-            <!-- Properties Grid -->
-            <div class="properties-grid" id="propertiesGrid">
-                <!-- Properties loaded dynamically -->
-            </div>
-            <div class="loading-spinner hidden" id="loadingSpinner">
-                <i class="fas fa-spinner fa-spin"></i> جاري التحميل...
-            </div>
-            <div class="empty-state hidden" id="emptyState">
-                <i class="fas fa-home"></i>
-                <p>لا توجد عقارات تطابق البحث</p>
-            </div>
+            <div class="properties-grid" id="propertiesGrid"></div>
+            <div class="loading-spinner hidden" id="loadingSpinner"><i class="fas fa-spinner fa-spin"></i> جاري التحميل...</div>
+            <div class="empty-state hidden" id="emptyState"><i class="fas fa-home"></i><p>لا توجد عقارات تطابق البحث</p></div>
         </div>
     </section>
 
@@ -215,133 +159,70 @@
             <p class="section-subtitle">هل تريد بيع أو تأجير عقارك؟ أضف تفاصيله وسنتواصل معك</p>
 
             <div class="list-property-features">
-                <div class="feature-card">
-                    <i class="fas fa-camera"></i>
-                    <h3>صور احترافية</h3>
-                    <p>أضف صور عقارك بجودة عالية لجذب المشترين</p>
-                </div>
-                <div class="feature-card">
-                    <i class="fas fa-chart-line"></i>
-                    <h3>تقييم سوقي</h3>
-                    <p>نساعدك في تحديد السعر المناسب بناءً على السوق</p>
-                </div>
-                <div class="feature-card">
-                    <i class="fas fa-bullhorn"></i>
-                    <h3>تسويق مجاني</h3>
-                    <p>نعرض عقارك على منصتنا مجاناً للوصول لأكبر عدد</p>
-                </div>
-                <div class="feature-card">
-                    <i class="fas fa-shield-alt"></i>
-                    <h3>ضمان الأمان</h3>
-                    <p>نتحقق من جميع المشترين المحتملين لحمايتك</p>
-                </div>
+                <div class="feature-card"><i class="fas fa-camera"></i><h3>صور احترافية</h3><p>أضف صور عقارك بجودة عالية</p></div>
+                <div class="feature-card"><i class="fas fa-chart-line"></i><h3>تقييم سوقي</h3><p>نساعدك في تحديد السعر المناسب</p></div>
+                <div class="feature-card"><i class="fas fa-bullhorn"></i><h3>تسويق مجاني</h3><p>نعرض عقارك على منصتنا مجاناً</p></div>
+                <div class="feature-card"><i class="fas fa-shield-alt"></i><h3>ضمان الأمان</h3><p>نتحقق من جميع المشترين المحتملين</p></div>
             </div>
 
             <div class="list-property-form-wrapper">
-                <form id="listPropertyForm" class="list-property-form" onsubmit="submitProperty(event)">
+                <form id="listPropertyForm" class="list-property-form">
                     <div class="form-section">
                         <h3><i class="fas fa-info-circle"></i> معلومات أساسية</h3>
                         <div class="form-row">
-                            <div class="form-group">
-                                <label>عنوان العقار *</label>
-                                <input type="text" id="propTitle" required placeholder="مثال: شقة فاخرة في رام الله">
-                            </div>
-                            <div class="form-group">
-                                <label>نوع العقار *</label>
+                            <div class="form-group"><label>عنوان العقار *</label><input type="text" id="propTitle" required placeholder="مثال: شقة فاخرة في رام الله"></div>
+                            <div class="form-group"><label>نوع العقار *</label>
                                 <select id="propType" required>
                                     <option value="">اختر النوع</option>
-                                    <option value="شقة">شقة</option>
-                                    <option value="فيلا">فيلا</option>
-                                    <option value="أرض">أرض</option>
-                                    <option value="مكتب">مكتب تجاري</option>
-                                    <option value="محل">محل تجاري</option>
-                                    <option value="مستودع">مستودع</option>
-                                    <option value="عمارة">عمارة سكنية</option>
-                                    <option value="مزرعة">مزرعة</option>
+                                    <option value="شقة">شقة</option><option value="فيلا">فيلا</option><option value="أرض">أرض</option>
+                                    <option value="مكتب">مكتب تجاري</option><option value="محل">محل تجاري</option><option value="مستودع">مستودع</option>
+                                    <option value="عمارة">عمارة سكنية</option><option value="مزرعة">مزرعة</option>
                                 </select>
                             </div>
                         </div>
                         <div class="form-row">
-                            <div class="form-group">
-                                <label>الغرض *</label>
-                                    <select id="propPurpose" required onchange="toggleRentPeriod()">
-                                    <option value="">اختر الغرض</option>
-                                    <option value="بيع">للبيع</option>
-                                    <option value="إيجار">للإيجار</option>
+                            <div class="form-group"><label>الغرض *</label>
+                                <select id="propPurpose" required onchange="toggleRentPeriod()">
+                                    <option value="">اختر الغرض</option><option value="بيع">للبيع</option><option value="إيجار">للإيجار</option>
                                 </select>
                             </div>
-                            <div class="form-group">
-                                <label>السعر (₪) *</label>
-                                <input type="number" id="propPrice" required placeholder="مثال: 350000">
+                            <div class="form-group"><label>السعر (₪) *</label><input type="number" id="propPrice" required placeholder="350000"></div>
+                        </div>
+                        <div class="form-row hidden" id="rentPeriodRow">
+                            <div class="form-group"><label>فترة الإيجار</label>
+                                <select id="propRentPeriod"><option value="شهري">شهري</option><option value="سنوي">سنوي</option></select>
                             </div>
-                            </div>
-                            <div class="form-row hidden" id="rentPeriodRow">
-                                <div class="form-group">
-                                    <label>فترة الإيجار *</label>
-                                    <select id="propRentPeriod">
-                                        <option value="شهري">شهري</option>
-                                        <option value="سنوي">سنوي</option>
-                                    </select>
-                                </div>
-                                <div class="form-group">
-                                    <!-- spacer -->
-                                </div>
+                            <div class="form-group"></div>
                         </div>
                     </div>
 
                     <div class="form-section">
                         <h3><i class="fas fa-map-marker-alt"></i> الموقع</h3>
                         <div class="form-row">
-                            <div class="form-group">
-                                <label>المدينة *</label>
+                            <div class="form-group"><label>المدينة *</label>
                                 <select id="propCity" required>
                                     <option value="">اختر المدينة</option>
-                                    <option value="رام الله">رام الله</option>
-                                    <option value="نابلس">نابلس</option>
-                                    <option value="الخليل">الخليل</option>
-                                    <option value="بيت لحم">بيت لحم</option>
-                                    <option value="جنين">جنين</option>
-                                    <option value="طولكرم">طولكرم</option>
-                                    <option value="قلقيلية">قلقيلية</option>
-                                    <option value="أريحا">أريحا</option>
-                                    <option value="القدس">القدس</option>
-                                    <option value="غزة">غزة</option>
+                                    <option value="رام الله">رام الله</option><option value="نابلس">نابلس</option><option value="الخليل">الخليل</option>
+                                    <option value="بيت لحم">بيت لحم</option><option value="جنين">جنين</option><option value="طولكرم">طولكرم</option>
+                                    <option value="قلقيلية">قلقيلية</option><option value="أريحا">أريحا</option><option value="القدس">القدس</option><option value="غزة">غزة</option>
                                 </select>
                             </div>
-                            <div class="form-group">
-                                <label>الحي / المنطقة *</label>
-                                <input type="text" id="propArea" required placeholder="مثال: الماصيون">
-                            </div>
+                            <div class="form-group"><label>الحي / المنطقة *</label><input type="text" id="propArea" required placeholder="مثال: الماصيون"></div>
                         </div>
-                        <div class="form-group full-width">
-                            <label>العنوان التفصيلي</label>
-                            <input type="text" id="propAddress" placeholder="شارع، رقم بناية، طابق...">
-                        </div>
+                        <div class="form-group full-width"><label>العنوان التفصيلي</label><input type="text" id="propAddress" placeholder="شارع، رقم بناية، طابق..."></div>
                     </div>
 
                     <div class="form-section">
                         <h3><i class="fas fa-ruler-combined"></i> تفاصيل العقار</h3>
                         <div class="form-row four-cols">
-                            <div class="form-group">
-                                <label>المساحة (م²) *</label>
-                                <input type="number" id="propSize" required placeholder="150">
-                            </div>
-                            <div class="form-group">
-                                <label>عدد الغرف</label>
-                                <input type="number" id="propBedrooms" placeholder="3">
-                            </div>
-                            <div class="form-group">
-                                <label>عدد الحمامات</label>
-                                <input type="number" id="propBathrooms" placeholder="2">
-                            </div>
-                            <div class="form-group">
-                                <label>الطابق</label>
-                                <input type="number" id="propFloor" placeholder="2">
-                            </div>
+                            <div class="form-group"><label>المساحة (م²) *</label><input type="number" id="propSize" required placeholder="150"></div>
+                            <div class="form-group"><label>عدد الغرف</label><input type="number" id="propBedrooms" placeholder="3"></div>
+                            <div class="form-group"><label>عدد الحمامات</label><input type="number" id="propBathrooms" placeholder="2"></div>
+                            <div class="form-group"><label>الطابق</label><input type="number" id="propFloor" placeholder="2"></div>
                         </div>
                         <div class="form-group full-width">
                             <label>المميزات</label>
-                            <div class="features-checkboxes">
+                            <div class="features-checkboxes" id="featuresCheckboxes">
                                 <label class="checkbox-label"><input type="checkbox" value="مصعد"> مصعد</label>
                                 <label class="checkbox-label"><input type="checkbox" value="موقف سيارات"> موقف سيارات</label>
                                 <label class="checkbox-label"><input type="checkbox" value="حديقة"> حديقة</label>
@@ -364,38 +245,26 @@
                             <input type="file" id="propImages" multiple accept="image/*" onchange="handleImageUpload(event)">
                             <i class="fas fa-cloud-upload-alt"></i>
                             <p>اسحب الصور هنا أو اضغط للاختيار</p>
-                            <span>يمكنك رفع حتى 10 صور (حد أقصى 5MB لكل صورة)</span>
+                            <span>حتى 10 صور (حد أقصى 5MB لكل صورة)</span>
                         </div>
                         <div class="image-preview-grid" id="imagePreviewGrid"></div>
                     </div>
 
                     <div class="form-section">
                         <h3><i class="fas fa-edit"></i> وصف إضافي</h3>
-                        <div class="form-group full-width">
-                            <label>وصف العقار</label>
-                            <textarea id="propDescription" rows="4" placeholder="أضف أي تفاصيل إضافية عن العقار..."></textarea>
-                        </div>
+                        <div class="form-group full-width"><label>وصف العقار</label><textarea id="propDescription" rows="4" placeholder="أضف أي تفاصيل إضافية..."></textarea></div>
                     </div>
 
                     <div class="form-section">
                         <h3><i class="fas fa-user"></i> معلومات التواصل</h3>
                         <div class="form-row">
-                            <div class="form-group">
-                                <label>الاسم الكامل *</label>
-                                <input type="text" id="propOwnerName" required placeholder="اسمك الكامل">
-                            </div>
-                            <div class="form-group">
-                                <label>رقم الهاتف *</label>
-                                <input type="tel" id="propOwnerPhone" required placeholder="05XXXXXXXX">
-                            </div>
+                            <div class="form-group"><label>الاسم الكامل *</label><input type="text" id="propOwnerName" required placeholder="اسمك الكامل"></div>
+                            <div class="form-group"><label>رقم الهاتف *</label><input type="tel" id="propOwnerPhone" required placeholder="05XXXXXXXX"></div>
                         </div>
-                        <div class="form-group full-width">
-                            <label>البريد الإلكتروني</label>
-                            <input type="email" id="propOwnerEmail" placeholder="email@example.com">
-                        </div>
+                        <div class="form-group full-width"><label>البريد الإلكتروني</label><input type="email" id="propOwnerEmail" placeholder="email@example.com"></div>
                     </div>
 
-                    <button type="submit" class="btn-submit-property">
+                    <button type="submit" class="btn-submit-property" id="submitPropertyBtn">
                         <i class="fas fa-paper-plane"></i> أرسل طلب العرض
                     </button>
                 </form>
@@ -410,29 +279,15 @@
                 <div class="about-text">
                     <h2>من نحن</h2>
                     <p>ديارنا للتطوير العقاري والاستثمار هي شركة فلسطينية رائدة في مجال العقارات، تأسست بهدف تسهيل عمليات البيع والشراء والإيجار للعقارات في فلسطين.</p>
-                    <p>نسعى لتقديم خدمات عقارية متكاملة تشمل التسويق الاحترافي، التقييم العقاري، الاستشارات، وإدارة الأملاك بأعلى معايير الجودة والشفافية.</p>
+                    <p>نسعى لتقديم خدمات عقارية متكاملة تشمل التسويق الاحترافي، التقييم العقاري، الاستشارات، وإدارة الأملاك.</p>
                     <div class="about-features">
-                        <div class="about-feature">
-                            <i class="fas fa-check-circle"></i>
-                            <span>خبرة واسعة في السوق المحلي</span>
-                        </div>
-                        <div class="about-feature">
-                            <i class="fas fa-check-circle"></i>
-                            <span>فريق متخصص ومحترف</span>
-                        </div>
-                        <div class="about-feature">
-                            <i class="fas fa-check-circle"></i>
-                            <span>شفافية تامة في التعاملات</span>
-                        </div>
-                        <div class="about-feature">
-                            <i class="fas fa-check-circle"></i>
-                            <span>خدمة عملاء متميزة</span>
-                        </div>
+                        <div class="about-feature"><i class="fas fa-check-circle"></i><span>خبرة واسعة في السوق المحلي</span></div>
+                        <div class="about-feature"><i class="fas fa-check-circle"></i><span>فريق متخصص ومحترف</span></div>
+                        <div class="about-feature"><i class="fas fa-check-circle"></i><span>شفافية تامة في التعاملات</span></div>
+                        <div class="about-feature"><i class="fas fa-check-circle"></i><span>خدمة عملاء متميزة</span></div>
                     </div>
                 </div>
-                <div class="about-image">
-                    <img src="https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=600&h=400&fit=crop" alt="عقارات ديارنا">
-                </div>
+                <div class="about-image"><img src="https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=600&h=400&fit=crop" alt="عقارات ديارنا"></div>
             </div>
         </div>
     </section>
@@ -443,36 +298,16 @@
             <h2 class="section-title">تواصل معنا</h2>
             <div class="contact-grid">
                 <div class="contact-info">
-                    <div class="contact-item">
-                        <i class="fas fa-phone"></i>
-                        <span>0569236758</span>
-                    </div>
-                    <div class="contact-item">
-                        <i class="fab fa-whatsapp"></i>
-                        <span>0569236758</span>
-                    </div>
-                    <div class="contact-item">
-                        <i class="fas fa-envelope"></i>
-                        <span>info@diyarona.ps</span>
-                    </div>
-                    <div class="contact-item">
-                        <i class="fas fa-map-marker-alt"></i>
-                        <span>فلسطين</span>
-                    </div>
+                    <div class="contact-item"><i class="fas fa-phone"></i><span>0569236758</span></div>
+                    <div class="contact-item"><i class="fab fa-whatsapp"></i><span>0569236758</span></div>
+                    <div class="contact-item"><i class="fas fa-envelope"></i><span>info@diyarona.ps</span></div>
+                    <div class="contact-item"><i class="fas fa-map-marker-alt"></i><span>فلسطين</span></div>
                 </div>
                 <form class="contact-form" id="contactForm" onsubmit="submitContact(event)">
-                    <div class="form-group">
-                        <input type="text" id="contactName" required placeholder="الاسم">
-                    </div>
-                    <div class="form-group">
-                        <input type="tel" id="contactPhone" required placeholder="رقم الهاتف">
-                    </div>
-                    <div class="form-group">
-                        <textarea id="contactMessage" rows="4" required placeholder="رسالتك"></textarea>
-                    </div>
-                    <button type="submit" class="btn-contact-submit">
-                        <i class="fas fa-paper-plane"></i> إرسال
-                    </button>
+                    <div class="form-group"><input type="text" id="contactName" required placeholder="الاسم"></div>
+                    <div class="form-group"><input type="tel" id="contactPhone" required placeholder="رقم الهاتف"></div>
+                    <div class="form-group"><textarea id="contactMessage" rows="4" required placeholder="رسالتك"></textarea></div>
+                    <button type="submit" class="btn-contact-submit"><i class="fas fa-paper-plane"></i> إرسال</button>
                 </form>
             </div>
         </div>
@@ -482,24 +317,14 @@
     <footer class="footer">
         <div class="container">
             <div class="footer-content">
-                <div class="footer-brand">
-                    <h3>ديارنا</h3>
-                    <p>للتطوير العقاري والاستثمار</p>
-                </div>
-                <div class="footer-links">
-                    <a href="#home">الرئيسية</a>
-                    <a href="#properties">العقارات</a>
-                    <a href="#list-property">اعرض عقارك</a>
-                    <a href="#contact">تواصل معنا</a>
-                </div>
+                <div class="footer-brand"><img src="logo.png" alt="ديارنا" class="footer-logo"><p>شركة ديارنا للتطوير العقاري والاستثمار</p></div>
+                <div class="footer-links"><a href="#home">الرئيسية</a><a href="#compounds">مجمعاتنا</a><a href="#properties">العقارات</a><a href="#list-property">اعرض عقارك</a><a href="#contact">تواصل معنا</a></div>
                 <div class="footer-social">
                     <a href="http://www.diyarona.ps/" target="_blank"><i class="fas fa-globe"></i></a>
                     <a href="https://wa.me/972569236758" target="_blank"><i class="fab fa-whatsapp"></i></a>
                 </div>
             </div>
-            <div class="footer-bottom">
-                <p>جميع الحقوق محفوظة - ديارنا للتطوير العقاري والاستثمار © 2024</p>
-            </div>
+            <div class="footer-bottom"><p>جميع الحقوق محفوظة - ديارنا للتطوير العقاري والاستثمار © 2024</p></div>
         </div>
     </footer>
 
@@ -512,33 +337,15 @@
                 <button class="auth-tab" onclick="switchAuthTab('register')">إنشاء حساب</button>
             </div>
             <form id="loginForm" class="auth-form" onsubmit="loginUser(event)">
-                <div class="form-group">
-                    <label>البريد الإلكتروني أو رقم الهاتف</label>
-                    <input type="text" id="loginEmail" required placeholder="email@example.com">
-                </div>
-                <div class="form-group">
-                    <label>كلمة المرور</label>
-                    <input type="password" id="loginPassword" required placeholder="********">
-                </div>
+                <div class="form-group"><label>البريد أو رقم الهاتف</label><input type="text" id="loginEmail" required placeholder="email@example.com"></div>
+                <div class="form-group"><label>كلمة المرور</label><input type="password" id="loginPassword" required placeholder="********"></div>
                 <button type="submit" class="btn-auth-submit">دخول</button>
             </form>
             <form id="registerForm" class="auth-form hidden" onsubmit="registerUser(event)">
-                <div class="form-group">
-                    <label>الاسم الكامل</label>
-                    <input type="text" id="regName" required placeholder="اسمك الكامل">
-                </div>
-                <div class="form-group">
-                    <label>رقم الهاتف</label>
-                    <input type="tel" id="regPhone" required placeholder="05XXXXXXXX">
-                </div>
-                <div class="form-group">
-                    <label>البريد الإلكتروني</label>
-                    <input type="email" id="regEmail" required placeholder="email@example.com">
-                </div>
-                <div class="form-group">
-                    <label>كلمة المرور</label>
-                    <input type="password" id="regPassword" required minlength="6" placeholder="6 أحرف على الأقل">
-                </div>
+                <div class="form-group"><label>الاسم الكامل</label><input type="text" id="regName" required placeholder="اسمك الكامل"></div>
+                <div class="form-group"><label>رقم الهاتف</label><input type="tel" id="regPhone" required placeholder="05XXXXXXXX"></div>
+                <div class="form-group"><label>البريد الإلكتروني</label><input type="email" id="regEmail" required placeholder="email@example.com"></div>
+                <div class="form-group"><label>كلمة المرور</label><input type="password" id="regPassword" required minlength="6" placeholder="6 أحرف على الأقل"></div>
                 <button type="submit" class="btn-auth-submit">إنشاء حساب</button>
             </form>
         </div>
@@ -558,11 +365,7 @@
             <h4><i class="fas fa-comments"></i> محادثة مع المبيعات</h4>
             <button class="chat-minimize" onclick="toggleChatWidget()"><i class="fas fa-minus"></i></button>
         </div>
-        <div class="chat-messages" id="chatMessages">
-            <div class="chat-welcome">
-                <p>مرحباً! كيف يمكننا مساعدتك؟</p>
-            </div>
-        </div>
+        <div class="chat-messages" id="chatMessages"><div class="chat-welcome"><p>مرحباً! كيف يمكننا مساعدتك؟</p></div></div>
         <div class="chat-input-area">
             <input type="text" id="chatInput" placeholder="اكتب رسالتك..." onkeypress="if(event.key==='Enter')sendMessage()">
             <button onclick="sendMessage()"><i class="fas fa-paper-plane"></i></button>
@@ -573,7 +376,7 @@
         <span class="fab-badge hidden" id="fabBadge">0</span>
     </button>
 
-    <!-- Toast Notification -->
+    <!-- Toast -->
     <div class="toast hidden" id="toast"></div>
 
     <!-- Scripts -->
