@@ -410,6 +410,32 @@
         <span class="fab-badge hidden" id="fabBadge">0</span>
     </button>
 
+    <!-- Visit Request Modal -->
+    <div class="modal-overlay hidden" id="visitModal">
+        <div class="modal auth-modal">
+            <button class="modal-close" onclick="closeVisitModal()">&times;</button>
+            <h3 style="margin-bottom:18px;color:var(--primary-dark)"><i class="fas fa-calendar-check"></i> طلب معاينة</h3>
+            <form id="visitForm" onsubmit="submitVisitRequest(event)">
+                <input type="hidden" id="visitPropertyId" value="">
+                <input type="hidden" id="visitPropertyTitle" value="">
+                <div id="visitGuestFields">
+                    <div class="form-group"><label>الاسم الكامل *</label><input type="text" id="visitName" placeholder="اسمك الكامل"></div>
+                    <div class="form-group"><label>رقم الهاتف *</label><input type="tel" id="visitPhone" placeholder="05XXXXXXXX"></div>
+                    <div class="form-group"><label>البريد الإلكتروني (اختياري)</label><input type="email" id="visitEmail" placeholder="email@example.com"></div>
+                </div>
+                <div class="form-group"><label>التاريخ المناسب *</label><input type="date" id="visitDate" required></div>
+                <div class="form-group"><label>الوقت المفضل</label>
+                    <select id="visitTime">
+                        <option value="صباحاً (9-12)">صباحاً (9-12)</option>
+                        <option value="ظهراً (12-3)">ظهراً (12-3)</option>
+                        <option value="مساءً (3-6)">مساءً (3-6)</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn-auth-submit"><i class="fas fa-paper-plane"></i> إرسال الطلب</button>
+            </form>
+        </div>
+    </div>
+
     <!-- Toast -->
     <div class="toast hidden" id="toast"></div>
 

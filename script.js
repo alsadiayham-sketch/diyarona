@@ -226,15 +226,17 @@
     window.closeCompoundModal = function () { document.getElementById('compoundModal').classList.add('hidden'); };
 
     window.requestCompoundVisit = function (compoundId, compoundName) {
-        if (!currentUser) { showToast('يرجى تسجيل الدخول أولاً'); openAuthModal(); return; }
-        db.collection('visit_requests').add({
-            propertyId: compoundId, propertyTitle: 'مشروع ' + compoundName,
-            propertyCity: '', userId: currentUser.id, userName: currentUser.name,
-            userPhone: currentUser.phone, userEmail: currentUser.email || '',
-            status: 'pending', type: 'compound',
-            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-            scheduledDate: null, scheduledTime: null, employeeNotes: ''
-        }).then(function () { showToast('تم إرسال طلب الزيارة! سنتواصل معك قريباً'); });
+        document.getElementById('visitPropertyId').value = compoundId;
+        document.getElementById('visitPropertyTitle').value = 'مشروع ' + compoundName;
+        var guestFields = document.getElementById('visitGuestFields');
+        if (currentUser) {
+            guestFields.classList.add('hidden');
+        } else {
+            guestFields.classList.remove('hidden');
+        }
+        var today = new Date().toISOString().split('T')[0];
+        document.getElementById('visitDate').min = today;
+        document.getElementById('visitModal').classList.remove('hidden');
     };
 
     // ===== PROPERTIES =====
@@ -377,16 +379,58 @@
     window.closePropertyModal = function () { document.getElementById('propertyModal').classList.add('hidden'); };
 
     window.requestVisit = function (propertyId) {
-        if (!currentUser) { showToast('يرجى تسجيل الدخول أولاً'); openAuthModal(); return; }
         var property = allProperties.find(function (p) { return p.id === propertyId; });
+        document.getElementById('visitPropertyId').value = propertyId;
+        document.getElementById('visitPropertyTitle').value = property ? property.title : '';
+        // Show/hide guest fields based on login
+        var guestFields = document.getElementById('visitGuestFields');
+        if (currentUser) {
+            guestFields.classList.add('hidden');
+        } else {
+            guestFields.classList.remove('hidden');
+        }
+        // Set min date to today
+        var today = new Date().toISOString().split('T')[0];
+        document.getElementById('visitDate').min = today;
+        document.getElementById('visitModal').classList.remove('hidden');
+    };
+
+    window.closeVisitModal = function () { document.getElementById('visitModal').classList.add('hidden'); };
+
+    window.submitVisitRequest = function (e) {
+        e.preventDefault();
+        var propertyId = document.getElementById('visitPropertyId').value;
+        var propertyTitle = document.getElementById('visitPropertyTitle').value;
+        var date = document.getElementById('visitDate').value;
+        var time = document.getElementById('visitTime').value;
+        var name, phone, email;
+
+        if (currentUser) {
+            name = currentUser.name;
+            phone = currentUser.phone;
+            email = currentUser.email || '';
+        } else {
+            name = document.getElementById('visitName').value.trim();
+            phone = document.getElementById('visitPhone').value.trim();
+            email = document.getElementById('visitEmail').value.trim();
+            if (!name || !phone) { showToast('يرجى إدخال الاسم ورقم الهاتف'); return; }
+        }
+        if (!date) { showToast('يرجى اختيار التاريخ'); return; }
+
         db.collection('visit_requests').add({
-            propertyId: propertyId, propertyTitle: property ? property.title : '',
-            propertyCity: property ? property.city : '', userId: currentUser.id,
-            userName: currentUser.name, userPhone: currentUser.phone, userEmail: currentUser.email || '',
+            propertyId: propertyId, propertyTitle: propertyTitle,
+            propertyCity: '', userId: currentUser ? currentUser.id : 'guest',
+            userName: name, userPhone: phone, userEmail: email,
+            preferredDate: date, preferredTime: time,
             status: 'pending', type: 'property',
             createdAt: firebase.firestore.FieldValue.serverTimestamp(),
             scheduledDate: null, scheduledTime: null, employeeNotes: ''
-        }).then(function () { showToast('تم إرسال طلب المعاينة! سنتواصل معك قريباً'); closePropertyModal(); });
+        }).then(function () {
+            showToast('تم إرسال طلب المعاينة! سنتواصل معك قريباً');
+            closeVisitModal();
+            closePropertyModal();
+            document.getElementById('visitForm').reset();
+        });
     };
 
     window.whatsappProperty = function (propertyId) {
