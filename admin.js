@@ -160,6 +160,14 @@
             document.getElementById('adminPropFloor').value = p.floor || '';
             document.getElementById('adminPropDescription').value = p.description || '';
             document.getElementById('adminPropImages').value = (p.images || []).join('\n');
+            // Handle rent period
+            var rentRow = document.getElementById('adminRentPeriodRow');
+            if (p.purpose === 'إيجار') {
+                rentRow.classList.remove('hidden');
+                document.getElementById('adminPropRentPeriod').value = p.rentPeriod || 'شهري';
+            } else {
+                rentRow.classList.add('hidden');
+            }
             adminImageUploads = p.images || [];
             renderAdminImagePreviews();
             document.getElementById('addPropertyModal').classList.remove('hidden');
@@ -170,6 +178,7 @@
         document.getElementById('editPropertyId').value = '';
         document.getElementById('propertyModalTitle').textContent = 'إضافة عقار جديد';
         document.getElementById('adminPropertyForm').reset();
+        document.getElementById('adminRentPeriodRow').classList.add('hidden');
         adminImageUploads = [];
         renderAdminImagePreviews();
         document.getElementById('addPropertyModal').classList.remove('hidden');
@@ -177,6 +186,16 @@
 
     window.closeAddPropertyModal = function () {
         document.getElementById('addPropertyModal').classList.add('hidden');
+    };
+
+    window.toggleAdminRentPeriod = function () {
+        var purpose = document.getElementById('adminPropPurpose').value;
+        var row = document.getElementById('adminRentPeriodRow');
+        if (purpose === 'إيجار') {
+            row.classList.remove('hidden');
+        } else {
+            row.classList.add('hidden');
+        }
     };
 
     window.handleAdminImageUpload = function (e) {
@@ -220,6 +239,7 @@
             type: document.getElementById('adminPropType').value,
             purpose: document.getElementById('adminPropPurpose').value,
             price: parseInt(document.getElementById('adminPropPrice').value) || 0,
+            rentPeriod: document.getElementById('adminPropPurpose').value === 'إيجار' ? document.getElementById('adminPropRentPeriod').value : null,
             city: document.getElementById('adminPropCity').value,
             area: document.getElementById('adminPropArea').value.trim(),
             size: parseInt(document.getElementById('adminPropSize').value) || 0,

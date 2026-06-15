@@ -198,6 +198,16 @@
         if (stat) stat.textContent = allProperties.length;
     }
 
+    window.toggleRentPeriod = function () {
+        var purpose = document.getElementById('propPurpose').value;
+        var row = document.getElementById('rentPeriodRow');
+        if (purpose === 'إيجار') {
+            row.classList.remove('hidden');
+        } else {
+            row.classList.add('hidden');
+        }
+    };
+
     window.applyFilters = function () {
         var type = document.getElementById('filterType').value;
         var city = document.getElementById('filterCity').value;
@@ -268,7 +278,10 @@
             var badgeClass = p.purpose === 'إيجار' ? 'rent' : '';
             var badgeText = p.purpose === 'إيجار' ? 'للإيجار' : 'للبيع';
             var priceText = formatPrice(p.price);
-            if (p.purpose === 'إيجار') priceText += ' <span>/شهري</span>';
+            if (p.purpose === 'إيجار') {
+                var period = p.rentPeriod === 'سنوي' ? '/سنوي' : '/شهري';
+                priceText += ' <span>' + period + '</span>';
+            }
 
             html += '<div class="property-card" onclick="openPropertyDetail(\'' + p.id + '\')">';
             html += '<div class="property-card-image">';
@@ -311,7 +324,7 @@
         html += '<div class="property-modal-meta">';
         html += '<span class="meta-item"><i class="fas fa-map-marker-alt"></i> ' + (property.city || '') + (property.area ? ' - ' + property.area : '') + '</span>';
         html += '<span class="meta-item"><i class="fas fa-tag"></i> ' + (property.type || '') + '</span>';
-        html += '<span class="meta-item"><i class="fas fa-money-bill"></i> ' + formatPrice(property.price) + ' ₪</span>';
+        html += '<span class="meta-item"><i class="fas fa-money-bill"></i> ' + formatPrice(property.price) + ' ₪' + (property.purpose === 'إيجار' ? (property.rentPeriod === 'سنوي' ? ' /سنوي' : ' /شهري') : '') + '</span>';
         if (property.size) html += '<span class="meta-item"><i class="fas fa-ruler-combined"></i> ' + property.size + ' م²</span>';
         if (property.bedrooms) html += '<span class="meta-item"><i class="fas fa-bed"></i> ' + property.bedrooms + ' غرف نوم</span>';
         if (property.bathrooms) html += '<span class="meta-item"><i class="fas fa-bath"></i> ' + property.bathrooms + ' حمامات</span>';
@@ -434,6 +447,7 @@
             type: document.getElementById('propType').value,
             purpose: document.getElementById('propPurpose').value,
             price: parseInt(document.getElementById('propPrice').value) || 0,
+            rentPeriod: document.getElementById('propPurpose').value === 'إيجار' ? document.getElementById('propRentPeriod').value : null,
             city: document.getElementById('propCity').value,
             area: document.getElementById('propArea').value.trim(),
             address: document.getElementById('propAddress').value.trim(),

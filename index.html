@@ -163,11 +163,20 @@
                 <div class="filter-group">
                     <select id="filterPrice" onchange="applyFilters()">
                         <option value="">كل الأسعار</option>
-                        <option value="0-100000">أقل من 100,000 ₪</option>
-                        <option value="100000-300000">100,000 - 300,000 ₪</option>
-                        <option value="300000-500000">300,000 - 500,000 ₪</option>
-                        <option value="500000-1000000">500,000 - 1,000,000 ₪</option>
-                        <option value="1000000-99999999">أكثر من 1,000,000 ₪</option>
+                        <optgroup label="أسعار البيع">
+                            <option value="0-100000">أقل من 100,000 ₪</option>
+                            <option value="100000-300000">100,000 - 300,000 ₪</option>
+                            <option value="300000-500000">300,000 - 500,000 ₪</option>
+                            <option value="500000-1000000">500,000 - 1,000,000 ₪</option>
+                            <option value="1000000-99999999">أكثر من 1,000,000 ₪</option>
+                        </optgroup>
+                        <optgroup label="أسعار الإيجار (شهري)">
+                            <option value="0-1500">أقل من 1,500 ₪/شهر</option>
+                            <option value="1500-3000">1,500 - 3,000 ₪/شهر</option>
+                            <option value="3000-5000">3,000 - 5,000 ₪/شهر</option>
+                            <option value="5000-10000">5,000 - 10,000 ₪/شهر</option>
+                            <option value="10000-99999999">أكثر من 10,000 ₪/شهر</option>
+                        </optgroup>
                     </select>
                 </div>
                 <div class="filter-group">
@@ -255,7 +264,7 @@
                         <div class="form-row">
                             <div class="form-group">
                                 <label>الغرض *</label>
-                                <select id="propPurpose" required>
+                                    <select id="propPurpose" required onchange="toggleRentPeriod()">
                                     <option value="">اختر الغرض</option>
                                     <option value="بيع">للبيع</option>
                                     <option value="إيجار">للإيجار</option>
@@ -265,6 +274,18 @@
                                 <label>السعر (₪) *</label>
                                 <input type="number" id="propPrice" required placeholder="مثال: 350000">
                             </div>
+                            </div>
+                            <div class="form-row hidden" id="rentPeriodRow">
+                                <div class="form-group">
+                                    <label>فترة الإيجار *</label>
+                                    <select id="propRentPeriod">
+                                        <option value="شهري">شهري</option>
+                                        <option value="سنوي">سنوي</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <!-- spacer -->
+                                </div>
                         </div>
                     </div>
 

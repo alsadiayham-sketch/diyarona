@@ -245,7 +245,7 @@
                 <div class="form-row">
                     <div class="form-group">
                         <label>الغرض *</label>
-                        <select id="adminPropPurpose" required>
+                        <select id="adminPropPurpose" required onchange="toggleAdminRentPeriod()">
                             <option value="بيع">للبيع</option>
                             <option value="إيجار">للإيجار</option>
                         </select>
@@ -254,6 +254,16 @@
                         <label>السعر (₪) *</label>
                         <input type="number" id="adminPropPrice" required>
                     </div>
+                </div>
+                <div class="form-row hidden" id="adminRentPeriodRow">
+                    <div class="form-group">
+                        <label>فترة الإيجار</label>
+                        <select id="adminPropRentPeriod">
+                            <option value="شهري">شهري</option>
+                            <option value="سنوي">سنوي</option>
+                        </select>
+                    </div>
+                    <div class="form-group"></div>
                 </div>
                 <div class="form-row">
                     <div class="form-group">
