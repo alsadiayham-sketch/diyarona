@@ -18,6 +18,9 @@
     var contactsUnsubscribe = null;
     var employeesUnsubscribe = null;
     var usersUnsubscribe = null;
+    var analyticsVisitsUnsubscribe = null;
+    var analyticsPropertiesUnsubscribe = null;
+    var interestedCustomersUnsubscribe = null;
     var currentChatUnsubscribe = null;
 
     var currentSession = null;
@@ -29,12 +32,17 @@
     var compoundsMap = {};
     var approvedPropertiesCache = [];
     var pendingPropertiesCache = [];
+    var soldPropertiesCache = [];
+    var analyticsVisitsCache = [];
+    var analyticsPropertiesCache = [];
+    var interestedCustomersCache = [];
     var employeesCache = [];
     var usersCache = [];
     var chatsCache = [];
     var contactMessagesCache = [];
     var compoundFileImages = [];
     var propertyFileImages = [];
+    var analyticsFiltersBound = false;
 
     function el(id) {
         return document.getElementById(id);
@@ -237,13 +245,153 @@
         if (role === 'property_manager') {
             return 'مدير عقارات';
         }
-        if (role === 'compound_manager') {
-            return 'مدير مجمعات';
+        if (role === 'manager') {
+            return 'مدير';
         }
         if (role === 'admin') {
             return 'مدير عام';
         }
         return role || '-';
+    }
+
+    function isAdminRole(role) {
+        return role === 'admin' || role === 'manager';
+    }
+
+    function firstExistingId(ids) {
+        var i;
+        for (i = 0; i < ids.length; i++) {
+            if (el(ids[i])) {
+                return ids[i];
+            }
+        }
+        return ids[0];
+    }
+
+    function getPropertyFormId() {
+        return firstExistingId(['propertyForm', 'adminPropertyForm']);
+    }
+
+    function getPropertyModalId() {
+        return firstExistingId(['addPropertyModal', 'adminPropertyModal']);
+    }
+
+    function getPropertyFieldId(name) {
+        var map = {
+            propertyId: ['propertyId', 'adminPropertyId'],
+            propertyStatus: ['propertyStatus', 'adminPropertyStatus'],
+            propertyTitle: ['propertyTitle', 'adminPropertyTitle'],
+            propertyCompound: ['propertyCompound', 'adminPropertyCompound'],
+            propertyType: ['propertyType', 'adminPropertyType'],
+            propertyPurpose: ['propertyPurpose', 'adminPropertyPurpose'],
+            propertyPrice: ['propertyPrice', 'adminPropertyPrice'],
+            propertyRentPeriod: ['propertyRentPeriod', 'adminPropertyRentPeriod'],
+            propertyCity: ['propertyCity', 'adminPropertyCity'],
+            propertyArea: ['propertyArea', 'adminPropertyArea'],
+            propertyAddress: ['propertyAddress', 'adminPropertyAddress'],
+            propertySize: ['propertySize', 'adminPropertySize'],
+            propertyBedrooms: ['propertyBedrooms', 'adminPropertyBedrooms'],
+            propertyBathrooms: ['propertyBathrooms', 'adminPropertyBathrooms'],
+            propertyFloor: ['propertyFloor', 'adminPropertyFloor'],
+            propertyDescription: ['propertyDescription', 'adminPropertyDescription'],
+            propertyAmenities: ['propertyAmenities', 'adminPropertyAmenities'],
+            propertyImageFiles: ['propertyImageFiles', 'adminPropertyImageFiles'],
+            propertyImageUrls: ['propertyImageUrls', 'adminPropertyImageUrls'],
+            propertyImagesPreview: ['propertyImagesPreview', 'adminPropertyImagesPreview'],
+            propertyRentPeriodRow: ['propertyRentPeriodRow', 'adminRentPeriodRow']
+        };
+        return firstExistingId(map[name] || [name]);
+    }
+
+    function getPropertyValue(name) {
+        return getTrimmedValue(getPropertyFieldId(name));
+    }
+
+    function setPropertyValue(name, value) {
+        setInputValue(getPropertyFieldId(name), value);
+    }
+
+    function purposeLabel(value) {
+        if (value === 'rent' || value === 'إيجار') {
+            return 'إيجار';
+        }
+        if (value === 'sale' || value === 'بيع') {
+            return 'بيع';
+        }
+        return value || '-';
+    }
+
+    function propertyStatusLabel(status) {
+        if (status === 'approved') {
+            return 'معتمد';
+        }
+        if (status === 'pending') {
+            return 'قيد الانتظار';
+        }
+        if (status === 'rejected') {
+            return 'مرفوض';
+        }
+        if (status === 'sold') {
+            return 'مباع';
+        }
+        return status || '-';
+    }
+
+    function getVisitArea(visit) {
+        return visit.area || visit.propertyArea || visit.propertyCity || visit.city || '';
+    }
+
+    function getVisitPropertyId(visit) {
+        return visit.propertyId || visit.property || visit.propertyDocId || '';
+    }
+
+    function getVisitSubmitterName(item) {
+        return item.submittedByName || item.ownerName || item.userName || item.submittedBy || '-';
+    }
+
+    function getVisitSubmitterPhone(item) {
+        return item.submitterPhone || item.ownerPhone || item.userPhone || '-';
+    }
+
+    function normalizePhoneNumber(phone) {
+        return String(phone || '').replace(/[^0-9]/g, '');
+    }
+
+    function isWithinPeriod(value, period) {
+        var date = toDateObject(value);
+        var limitDate;
+        var days;
+        if (period === 'all' || !period) {
+            return true;
+        }
+        if (!date) {
+            return false;
+        }
+        days = parseInt(period, 10);
+        if (isNaN(days) || days <= 0) {
+            return true;
+        }
+        limitDate = new Date();
+        limitDate.setHours(0, 0, 0, 0);
+        limitDate.setDate(limitDate.getDate() - days);
+        return date.getTime() >= limitDate.getTime();
+    }
+
+    function findPropertyById(id) {
+        var collections = [approvedPropertiesCache, pendingPropertiesCache, soldPropertiesCache, analyticsPropertiesCache];
+        var i;
+        var j;
+        if (!id) {
+            return null;
+        }
+        for (i = 0; i < collections.length; i++) {
+            for (j = 0; j < collections[i].length; j++) {
+                if (collections[i][j].id === id) {
+                    return collections[i][j];
+                }
+            }
+        }
+        return null;
     }
 
     function toggleFormRow(id, visible) {
@@ -267,7 +415,7 @@
         var allowedRoles;
         var role = currentSession ? currentSession.role : '';
         for (i = 0; i < nodes.length; i++) {
-            if (!currentSession || role === 'admin') {
+            if (!currentSession || isAdminRole(role)) {
                 showElement(nodes[i], true);
             } else {
                 allowedRoles = nodes[i].getAttribute('data-role-only').split(',');
@@ -363,6 +511,15 @@
         if (typeof usersUnsubscribe === 'function') {
             usersUnsubscribe();
         }
+        if (typeof analyticsVisitsUnsubscribe === 'function') {
+            analyticsVisitsUnsubscribe();
+        }
+        if (typeof analyticsPropertiesUnsubscribe === 'function') {
+            analyticsPropertiesUnsubscribe();
+        }
+        if (typeof interestedCustomersUnsubscribe === 'function') {
+            interestedCustomersUnsubscribe();
+        }
         dashboardPropertiesUnsubscribe = null;
         dashboardVisitsUnsubscribe = null;
         dashboardChatsUnsubscribe = null;
@@ -376,6 +533,13 @@
         contactsUnsubscribe = null;
         employeesUnsubscribe = null;
         usersUnsubscribe = null;
+        analyticsVisitsUnsubscribe = null;
+        analyticsPropertiesUnsubscribe = null;
+        interestedCustomersUnsubscribe = null;
+        if (typeof logsUnsubscribe === 'function') {
+            logsUnsubscribe();
+        }
+        logsUnsubscribe = null;
         closeActiveChatListener();
     }
 
@@ -432,6 +596,9 @@
         loadContacts();
         loadEmployees();
         loadUsers();
+        loadAnalytics();
+        loadInterestedCustomers();
+        loadLogs();
         switchTab('dashboard');
     }
 
@@ -488,7 +655,7 @@
                 name: data.name || data.username,
                 username: data.username,
                 role: data.role || 'sales',
-                isAdmin: false
+                isAdmin: isAdminRole(data.role || 'sales')
             });
             initAdminApp();
         }).catch(function (error) {
@@ -545,7 +712,7 @@
                     name: data.name || data.username,
                     username: data.username,
                     role: data.role || 'sales',
-                    isAdmin: false
+                    isAdmin: isAdminRole(data.role || 'sales')
                 });
                 pendingPasswordReset = null;
                 notify('تم تحديث كلمة المرور بنجاح');
@@ -561,6 +728,7 @@
         closeCompoundModal();
         closeAddPropertyModal();
         closeScheduleModal();
+        closeCompleteVisitModal();
         closeEmployeeModal();
         clearSession();
         touchAdminAuth('logout');
@@ -596,8 +764,10 @@
         dashboardPropertiesUnsubscribe = db.collection('properties').onSnapshot(function (propertySnap) {
             var approved = 0;
             var pending = 0;
+            var total = 0;
             propertySnap.forEach(function (doc) {
                 var data = doc.data() || {};
+                total += 1;
                 if (data.status === 'approved') {
                     approved += 1;
                 } else if (data.status === 'pending') {
@@ -605,7 +775,8 @@
                 }
             });
             setText(['statApprovedProperties', 'dashboardApprovedProperties'], approved);
-            setText(['statPendingProperties', 'dashboardPendingProperties'], pending);
+            setText(['statPendingProperties', 'dashboardPendingProperties', 'pendingPropertiesCount'], pending);
+            setText(['totalPropertiesCount'], total);
             setBadge(['pendingPropertiesBadge', 'sidebarPendingPropertiesBadge'], pending);
         }, function (error) {
             handleError('تعذر تحميل إحصائيات العقارات', error);
@@ -619,8 +790,8 @@
                     pendingVisits += 1;
                 }
             });
-            setText(['statVisitRequests', 'dashboardVisitRequests'], pendingVisits);
-            setBadge(['visitRequestsBadge', 'sidebarVisitRequestsBadge'], pendingVisits);
+            setText(['statVisitRequests', 'dashboardVisitRequests', 'dashboardVisitsPending', 'pendingVisitsCount'], pendingVisits);
+            setBadge(['visitRequestsBadge', 'sidebarVisitRequestsBadge', 'pendingVisitsBadge'], pendingVisits);
         }, function (error) {
             handleError('تعذر تحميل إحصائيات الزيارات', error);
         });
@@ -632,21 +803,21 @@
                 data.id = doc.id;
                 items.push(data);
             });
-            setText(['statChats', 'dashboardChats'], items.length);
+            setText(['statChats', 'dashboardChats', 'dashboardChatsOpen', 'activeChatsCount'], items.length);
             setText(['statUnreadChats', 'dashboardUnreadChats'], countUnreadChats(items));
-            setBadge(['chatBadge', 'sidebarChatBadge'], countUnreadChats(items));
+            setBadge(['chatBadge', 'sidebarChatBadge', 'activeChatsBadge'], countUnreadChats(items));
         }, function (error) {
             handleError('تعذر تحميل إحصائيات المحادثات', error);
         });
 
         dashboardUsersUnsubscribe = db.collection('users').onSnapshot(function (userSnap) {
-            setText(['statUsers', 'dashboardUsers'], userSnap.size);
+            setText(['statUsers', 'dashboardUsers', 'totalUsersCount'], userSnap.size);
         }, function (error) {
             handleError('تعذر تحميل إحصائيات المستخدمين', error);
         });
 
         dashboardEmployeesUnsubscribe = db.collection('employees').onSnapshot(function (employeeSnap) {
-            setText(['statEmployees', 'dashboardEmployees'], employeeSnap.size);
+            setText(['statEmployees', 'dashboardEmployees', 'totalEmployeesCount'], employeeSnap.size);
         }, function (error) {
             handleError('تعذر تحميل إحصائيات الموظفين', error);
         });
@@ -660,7 +831,7 @@
     }
 
     function populateCompoundDropdown() {
-        var select = el('adminPropertyCompound');
+        var select = el(getPropertyFieldId('propertyCompound'));
         var i;
         if (!select) {
             return;
@@ -781,7 +952,7 @@
     }
 
     function syncPropertyImagePreview() {
-        renderImagePreview('propertyImagesPreview', collectImages('adminPropertyImageUrls', propertyFileImages));
+        renderImagePreview(getPropertyFieldId('propertyImagesPreview'), collectImages(getPropertyFieldId('propertyImageUrls'), propertyFileImages));
     }
 
     function readFilesAsBase64(files, callback) {
@@ -810,9 +981,9 @@
 
     function bindImageInputs() {
         var compoundInput = el('compoundImageFiles');
-        var propertyInput = el('adminPropertyImageFiles');
+        var propertyInput = el(getPropertyFieldId('propertyImageFiles'));
         var compoundUrls = el('compoundImageUrls');
-        var propertyUrls = el('adminPropertyImageUrls');
+        var propertyUrls = el(getPropertyFieldId('propertyImageUrls'));
         if (compoundInput) {
             compoundInput.addEventListener('change', function () {
                 readFilesAsBase64(compoundInput.files || [], function (images) {
@@ -918,7 +1089,7 @@
     }
 
     function renderApprovedProperties() {
-        var body = el('approvedPropertiesTableBody');
+        var body = el('approvedPropertiesTableBody') || el('propertiesTableBody');
         var html = '';
         var i;
         if (!body) {
@@ -935,10 +1106,11 @@
             html += '<td>' + escapeHtml(item.type || '-') + '</td>';
             html += '<td>' + escapeHtml(item.city || '-') + '</td>';
             html += '<td>' + escapeHtml(formatPrice(item.price || 0)) + '</td>';
-            html += '<td>' + escapeHtml(item.purpose || '-') + '</td>';
             html += '<td>' + escapeHtml((compoundsMap[item.compound] && compoundsMap[item.compound].name) || item.compoundName || '-') + '</td>';
+            html += '<td><span class="status-badge status-approved">' + escapeHtml(propertyStatusLabel(item.status || 'approved')) + '</span></td>';
             html += '<td>';
             html += '<button type="button" class="btn-action edit" onclick="editProperty(\'' + escapeJsString(item.id) + '\')"><i class="fa-solid fa-pen"></i> تعديل</button> ';
+            html += '<button type="button" class="btn-action complete" onclick="markPropertySold(\'' + escapeJsString(item.id) + '\')"><i class="fa-solid fa-handshake"></i> تم البيع</button> ';
             html += '<button type="button" class="btn-action delete" onclick="deleteProperty(\'' + escapeJsString(item.id) + '\')"><i class="fa-solid fa-trash"></i> حذف</button>';
             html += '</td>';
             html += '</tr>';
@@ -968,6 +1140,9 @@
             html += '<h3>' + escapeHtml(item.title || 'بدون عنوان') + '</h3>';
             html += '<p>' + escapeHtml(item.city || '-') + ' - ' + escapeHtml(item.area || '-') + '</p>';
             html += '<p>' + escapeHtml(formatPrice(item.price || 0)) + '</p>';
+            html += '<p><i class="fa-solid fa-ruler-combined"></i> ' + escapeHtml((item.size || '-') + ' م²') + ' | <i class="fa-solid fa-bed"></i> ' + escapeHtml(item.bedrooms || 0) + ' غرف | <i class="fa-solid fa-bath"></i> ' + escapeHtml(item.bathrooms || 0) + ' حمام</p>';
+            html += '<p><i class="fa-solid fa-tag"></i> ' + escapeHtml(item.type || '-') + ' | ' + escapeHtml(purposeLabel(item.purpose)) + '</p>';
+            html += '<p><i class="fa-solid fa-user"></i> ' + escapeHtml(getVisitSubmitterName(item)) + ' | <i class="fa-solid fa-phone"></i> ' + escapeHtml(getVisitSubmitterPhone(item)) + '</p>';
             html += '<div class="card-actions">';
             html += '<button type="button" class="btn-action approve" onclick="approveProperty(\'' + escapeJsString(item.id) + '\')"><i class="fa-solid fa-check"></i> اعتماد</button>';
             html += '<button type="button" class="btn-action edit" onclick="editProperty(\'' + escapeJsString(item.id) + '\')"><i class="fa-solid fa-pen"></i> تعديل</button>';
@@ -1008,23 +1183,25 @@
             });
             sortByUpdatedDesc(pendingPropertiesCache);
             renderPendingProperties();
+            setBadge(['pendingPropertiesBadge'], pendingPropertiesCache.length);
         }, function (error) {
             handleError('تعذر تحميل العقارات المعلقة', error);
         });
     }
 
     function openAddPropertyModal() {
-        resetForm('adminPropertyForm');
-        setInputValue('adminPropertyId', '');
+        resetForm(getPropertyFormId());
+        setPropertyValue('propertyId', '');
+        setPropertyValue('propertyStatus', 'approved');
         propertyFileImages = [];
         populateCompoundDropdown();
         syncPropertyImagePreview();
         toggleAdminRentPeriod();
-        showElement(el('adminPropertyModal'), true);
+        showElement(el(getPropertyModalId()), true);
     }
 
     function closeAddPropertyModal() {
-        showElement(el('adminPropertyModal'), false);
+        showElement(el(getPropertyModalId()), false);
     }
 
     function saveAdminProperty(event) {
@@ -1033,30 +1210,34 @@
         var compoundName;
         var payload;
         var promise;
+        var purposeValue;
         if (event && typeof event.preventDefault === 'function') {
             event.preventDefault();
         }
-        propertyId = getTrimmedValue('adminPropertyId');
-        compoundId = getTrimmedValue('adminPropertyCompound');
+        propertyId = getPropertyValue('propertyId');
+        compoundId = getPropertyValue('propertyCompound');
         compoundName = compoundsMap[compoundId] ? compoundsMap[compoundId].name : '';
+        purposeValue = getPropertyValue('propertyPurpose');
         payload = {
             id: propertyId || ('property_' + Date.now()),
-            title: getTrimmedValue('adminPropertyTitle'),
-            type: getTrimmedValue('adminPropertyType'),
-            purpose: getTrimmedValue('adminPropertyPurpose'),
-            price: toIntegerOrNull(getTrimmedValue('adminPropertyPrice')) || 0,
-            rentPeriod: getTrimmedValue('adminPropertyPurpose') === 'إيجار' ? getTrimmedValue('adminPropertyRentPeriod') : '',
-            city: getTrimmedValue('adminPropertyCity'),
-            area: getTrimmedValue('adminPropertyArea'),
-            size: toIntegerOrNull(getTrimmedValue('adminPropertySize')) || 0,
-            bedrooms: toIntegerOrNull(getTrimmedValue('adminPropertyBedrooms')) || 0,
-            bathrooms: toIntegerOrNull(getTrimmedValue('adminPropertyBathrooms')) || 0,
-            floor: toIntegerOrNull(getTrimmedValue('adminPropertyFloor')) || 0,
-            description: getTrimmedValue('adminPropertyDescription'),
-            images: collectImages('adminPropertyImageUrls', propertyFileImages),
+            title: getPropertyValue('propertyTitle'),
+            type: getPropertyValue('propertyType'),
+            purpose: purposeValue,
+            price: toIntegerOrNull(getPropertyValue('propertyPrice')) || 0,
+            rentPeriod: purposeValue === 'إيجار' ? getPropertyValue('propertyRentPeriod') : '',
+            city: getPropertyValue('propertyCity'),
+            area: getPropertyValue('propertyArea'),
+            address: getPropertyValue('propertyAddress'),
+            size: toIntegerOrNull(getPropertyValue('propertySize')) || 0,
+            bedrooms: toIntegerOrNull(getPropertyValue('propertyBedrooms')) || 0,
+            bathrooms: toIntegerOrNull(getPropertyValue('propertyBathrooms')) || 0,
+            floor: toIntegerOrNull(getPropertyValue('propertyFloor')) || 0,
+            description: getPropertyValue('propertyDescription'),
+            amenities: splitCsv(getPropertyValue('propertyAmenities')),
+            images: collectImages(getPropertyFieldId('propertyImageUrls'), propertyFileImages),
             compound: compoundId,
             compoundName: compoundName,
-            status: 'approved',
+            status: getPropertyValue('propertyStatus') || 'approved',
             updatedAt: firebase.firestore.FieldValue.serverTimestamp()
         };
         if (!payload.title || !payload.type || !payload.purpose) {
@@ -1081,20 +1262,60 @@
         db.collection('properties').doc(id).set({
             status: 'approved',
             approvedAt: firebase.firestore.FieldValue.serverTimestamp(),
-            reviewedBy: currentSession ? currentSession.username : ''
+            reviewedBy: currentSession ? currentSession.username : '',
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
         }, { merge: true }).then(function () {
             notify('تم اعتماد العقار');
+            logActivity('property_approved', 'اعتماد عقار: ' + id);
         }).catch(function (error) {
             handleError('تعذر اعتماد العقار', error);
         });
     }
 
-    function deleteProperty(id) {
-        if (!window.confirm('هل تريد حذف/رفض هذا العقار؟')) {
+    function markPropertySold(id) {
+        if (!window.confirm('هل تريد تأكيد أن هذا العقار تم بيعه؟')) {
             return;
         }
-        db.collection('properties').doc(id).delete().then(function () {
-            notify('تم حذف العقار');
+        db.collection('properties').doc(id).set({
+            status: 'sold',
+            soldAt: firebase.firestore.FieldValue.serverTimestamp(),
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        }, { merge: true }).then(function () {
+            notify('تم تحديث العقار إلى مباع');
+            logActivity('property_sold', 'بيع عقار: ' + id);
+        }).catch(function (error) {
+            handleError('تعذر تحديث حالة العقار', error);
+        });
+    }
+
+    function deleteProperty(id) {
+        db.collection('properties').doc(id).get().then(function (doc) {
+            var data;
+            if (!doc.exists) {
+                notify('العقار غير موجود', true);
+                return null;
+            }
+            data = doc.data() || {};
+            if (data.status === 'pending') {
+                if (!window.confirm('هل تريد رفض هذا العقار؟')) {
+                    return null;
+                }
+                return db.collection('properties').doc(id).set({
+                    status: 'rejected',
+                    rejectedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    reviewedBy: currentSession ? currentSession.username : '',
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                }, { merge: true }).then(function () {
+                    notify('تم رفض العقار');
+                    logActivity('property_rejected', 'رفض عقار: ' + (data.title || id));
+                });
+            }
+            if (!window.confirm('هل تريد حذف هذا العقار؟')) {
+                return null;
+            }
+            return db.collection('properties').doc(id).delete().then(function () {
+                notify('تم حذف العقار');
+            });
         }).catch(function (error) {
             handleError('تعذر حذف العقار', error);
         });
@@ -1110,21 +1331,24 @@
             item = normalizeProperty(doc.data() || {});
             item.id = doc.id;
             openAddPropertyModal();
-            setInputValue('adminPropertyId', item.id);
-            setInputValue('adminPropertyTitle', item.title || '');
-            setInputValue('adminPropertyType', item.type || '');
-            setInputValue('adminPropertyPurpose', item.purpose || '');
-            setInputValue('adminPropertyPrice', item.price || '');
-            setInputValue('adminPropertyRentPeriod', item.rentPeriod || '');
-            setInputValue('adminPropertyCity', item.city || '');
-            setInputValue('adminPropertyArea', item.area || '');
-            setInputValue('adminPropertySize', item.size || '');
-            setInputValue('adminPropertyBedrooms', item.bedrooms || '');
-            setInputValue('adminPropertyBathrooms', item.bathrooms || '');
-            setInputValue('adminPropertyFloor', item.floor || '');
-            setInputValue('adminPropertyDescription', item.description || '');
-            setInputValue('adminPropertyImageUrls', (item.images || []).join('\n'));
-            setInputValue('adminPropertyCompound', item.compound || '');
+            setPropertyValue('propertyId', item.id);
+            setPropertyValue('propertyStatus', item.status || 'approved');
+            setPropertyValue('propertyTitle', item.title || '');
+            setPropertyValue('propertyType', item.type || '');
+            setPropertyValue('propertyPurpose', item.purpose || '');
+            setPropertyValue('propertyPrice', item.price || '');
+            setPropertyValue('propertyRentPeriod', item.rentPeriod || '');
+            setPropertyValue('propertyCity', item.city || '');
+            setPropertyValue('propertyArea', item.area || '');
+            setPropertyValue('propertyAddress', item.address || '');
+            setPropertyValue('propertySize', item.size || '');
+            setPropertyValue('propertyBedrooms', item.bedrooms || '');
+            setPropertyValue('propertyBathrooms', item.bathrooms || '');
+            setPropertyValue('propertyFloor', item.floor || '');
+            setPropertyValue('propertyDescription', item.description || '');
+            setPropertyValue('propertyAmenities', (item.amenities || item.features || []).join(', '));
+            setPropertyValue('propertyImageUrls', (item.images || []).join('\n'));
+            setPropertyValue('propertyCompound', item.compound || '');
             propertyFileImages = [];
             toggleAdminRentPeriod();
             syncPropertyImagePreview();
@@ -1134,8 +1358,8 @@
     }
 
     function toggleAdminRentPeriod() {
-        var purpose = getTrimmedValue('adminPropertyPurpose');
-        toggleFormRow('adminRentPeriodRow', purpose === 'إيجار');
+        var purpose = getPropertyValue('propertyPurpose');
+        toggleFormRow(getPropertyFieldId('propertyRentPeriodRow'), purpose === 'إيجار');
     }
 
     function statusBadge(status) {
@@ -1157,6 +1381,8 @@
             visitsUnsubscribe();
         }
         visitsUnsubscribe = db.collection('visit_requests').onSnapshot(function (snapshot) {
+            var pendingCount = 0;
+            var j;
             allVisits = [];
             snapshot.forEach(function (doc) {
                 var data = doc.data() || {};
@@ -1165,6 +1391,12 @@
             });
             sortByUpdatedDesc(allVisits);
             renderVisits();
+            for (j = 0; j < allVisits.length; j++) {
+                if (allVisits[j].status === 'pending') {
+                    pendingCount += 1;
+                }
+            }
+            setBadge(['pendingVisitsBadge'], pendingCount);
         }, function (error) {
             handleError('تعذر تحميل طلبات الزيارة', error);
         });
@@ -1255,6 +1487,7 @@
             updatedAt: firebase.firestore.FieldValue.serverTimestamp()
         }, { merge: true }).then(function () {
             notify('تمت جدولة الزيارة');
+            logActivity('visit_scheduled', 'جدولة زيارة بتاريخ ' + date + ' ' + time);
             closeScheduleModal();
         }).catch(function (error) {
             handleError('تعذر جدولة الزيارة', error);
@@ -1262,11 +1495,44 @@
     }
 
     function completeVisit(id) {
-        db.collection('visit_requests').doc(id).set({
+        resetForm('completeVisitForm');
+        setInputValue('completeVisitId', id);
+        showElement(el('completeVisitModal'), true);
+    }
+
+    function closeCompleteVisitModal() {
+        resetForm('completeVisitForm');
+        setInputValue('completeVisitId', '');
+        showElement(el('completeVisitModal'), false);
+    }
+
+    function submitCompleteVisit(event) {
+        var visitId;
+        var notes;
+        var interestedInput;
+        var payload;
+        if (event && typeof event.preventDefault === 'function') {
+            event.preventDefault();
+        }
+        visitId = getTrimmedValue('completeVisitId');
+        notes = getTrimmedValue('postVisitNotes');
+        interestedInput = document.querySelector('input[name="clientInterested"]:checked');
+        if (!visitId || !notes || !interestedInput) {
+            notify('يرجى تعبئة جميع حقول إتمام الزيارة', true);
+            return;
+        }
+        payload = {
             status: 'completed',
-            completedAt: firebase.firestore.FieldValue.serverTimestamp()
-        }, { merge: true }).then(function () {
-            notify('تم تحديث الزيارة إلى مكتملة');
+            postVisitNotes: notes,
+            clientInterested: interestedInput.value === 'yes',
+            interested: interestedInput.value === 'yes',
+            completedAt: firebase.firestore.FieldValue.serverTimestamp(),
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        };
+        db.collection('visit_requests').doc(visitId).set(payload, { merge: true }).then(function () {
+            notify('تم إتمام الزيارة بنجاح');
+            logActivity('visit_completed', 'إتمام زيارة - العميل ' + (interestedInput.value === 'yes' ? 'مهتم' : 'غير مهتم'));
+            closeCompleteVisitModal();
         }).catch(function (error) {
             handleError('تعذر إتمام الزيارة', error);
         });
@@ -1275,21 +1541,275 @@
     function cancelVisit(id) {
         db.collection('visit_requests').doc(id).set({
             status: 'cancelled',
-            cancelledAt: firebase.firestore.FieldValue.serverTimestamp()
+            cancelledAt: firebase.firestore.FieldValue.serverTimestamp(),
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
         }, { merge: true }).then(function () {
             notify('تم إلغاء الزيارة');
+            logActivity('visit_cancelled', 'إلغاء زيارة: ' + id);
         }).catch(function (error) {
             handleError('تعذر إلغاء الزيارة', error);
         });
     }
 
+    function populateAnalyticsAreaFilter() {
+        var select = el('analyticsAreaFilter');
+        var areas = {};
+        var selected;
+        var keys;
+        var i;
+        var area;
+        var options = '<option value="">كل المناطق</option>';
+        if (!select) {
+            return;
+        }
+        selected = select.value || '';
+        for (i = 0; i < analyticsVisitsCache.length; i++) {
+            area = getVisitArea(analyticsVisitsCache[i]);
+            if (area) {
+                areas[area] = true;
+            }
+        }
+        for (i = 0; i < analyticsPropertiesCache.length; i++) {
+            area = analyticsPropertiesCache[i].area || analyticsPropertiesCache[i].city || '';
+            if (area) {
+                areas[area] = true;
+            }
+        }
+        keys = Object.keys(areas).sort(function (a, b) {
+            return a.localeCompare(b, 'ar');
+        });
+        for (i = 0; i < keys.length; i++) {
+            options += '<option value="' + escapeHtml(keys[i]) + '">' + escapeHtml(keys[i]) + '</option>';
+        }
+        select.innerHTML = options;
+        select.value = selected;
+    }
+
+    function renderAnalytics() {
+        var statsNode = el('analyticsStats');
+        var tableBody = el('analyticsTableBody');
+        var areaFilter = getTrimmedValue('analyticsAreaFilter');
+        var statusFilter = getTrimmedValue('analyticsStatusFilter');
+        var periodFilter = getTrimmedValue('analyticsPeriodFilter') || '30';
+        var visitCounts = { pending: 0, accepted: 0, completed: 0, cancelled: 0 };
+        var totalVisits = 0;
+        var filteredVisits = 0;
+        var interestedCount = 0;
+        var soldCount = 0;
+        var totalSalesValue = 0;
+        var i;
+        var visit;
+        var property;
+        var matchesArea;
+        if (!statsNode || !tableBody) {
+            return;
+        }
+        for (i = 0; i < analyticsVisitsCache.length; i++) {
+            visit = analyticsVisitsCache[i];
+            matchesArea = !areaFilter || getVisitArea(visit) === areaFilter;
+            if (matchesArea && isWithinPeriod(visit.createdAt || visit.updatedAt, periodFilter)) {
+                totalVisits += 1;
+                if (visitCounts[visit.status] != null) {
+                    visitCounts[visit.status] += 1;
+                }
+                if (!statusFilter || visit.status === statusFilter) {
+                    filteredVisits += 1;
+                }
+                if (visit.interested === true || visit.clientInterested === true) {
+                    interestedCount += 1;
+                }
+            }
+        }
+        for (i = 0; i < analyticsPropertiesCache.length; i++) {
+            property = analyticsPropertiesCache[i];
+            matchesArea = !areaFilter || property.area === areaFilter || property.city === areaFilter;
+            if (property.status === 'sold' && matchesArea && isWithinPeriod(property.soldAt || property.updatedAt, periodFilter)) {
+                soldCount += 1;
+                totalSalesValue += parseInt(property.price, 10) || 0;
+            }
+        }
+        statsNode.innerHTML = ''
+            + '<div class="stat-card"><div class="stat-icon"><i class="fa-solid fa-calendar-days"></i></div><div class="stat-info"><span class="stat-number">' + escapeHtml(totalVisits) + '</span><span class="stat-label">إجمالي الزيارات</span></div></div>'
+            + '<div class="stat-card"><div class="stat-icon"><i class="fa-solid fa-filter"></i></div><div class="stat-info"><span class="stat-number">' + escapeHtml(filteredVisits) + '</span><span class="stat-label">الزيارات حسب الفلتر</span></div></div>'
+            + '<div class="stat-card"><div class="stat-icon"><i class="fa-solid fa-house-circle-check"></i></div><div class="stat-info"><span class="stat-number">' + escapeHtml(soldCount) + '</span><span class="stat-label">العقارات المباعة</span></div></div>'
+            + '<div class="stat-card"><div class="stat-icon"><i class="fa-solid fa-sack-dollar"></i></div><div class="stat-info"><span class="stat-number">' + escapeHtml(formatPrice(totalSalesValue)) + '</span><span class="stat-label">إجمالي قيمة المبيعات</span></div></div>';
+        tableBody.innerHTML = ''
+            + '<tr><td>قيد الانتظار</td><td>' + escapeHtml(visitCounts.pending) + '</td></tr>'
+            + '<tr><td>مجدولة</td><td>' + escapeHtml(visitCounts.accepted) + '</td></tr>'
+            + '<tr><td>مكتملة</td><td>' + escapeHtml(visitCounts.completed) + '</td></tr>'
+            + '<tr><td>ملغاة</td><td>' + escapeHtml(visitCounts.cancelled) + '</td></tr>'
+            + '<tr><td>العملاء المهتمون</td><td>' + escapeHtml(interestedCount) + '</td></tr>'
+            + '<tr><td>العقارات المباعة</td><td>' + escapeHtml(soldCount) + '</td></tr>'
+            + '<tr><td>إجمالي قيمة المبيعات</td><td>' + escapeHtml(formatPrice(totalSalesValue)) + '</td></tr>';
+    }
+
+    function bindAnalyticsFilters() {
+        var ids = ['analyticsAreaFilter', 'analyticsStatusFilter', 'analyticsPeriodFilter'];
+        var i;
+        var node;
+        if (analyticsFiltersBound) {
+            return;
+        }
+        analyticsFiltersBound = true;
+        for (i = 0; i < ids.length; i++) {
+            node = el(ids[i]);
+            if (node) {
+                node.addEventListener('change', renderAnalytics);
+            }
+        }
+    }
+
+    function loadAnalytics() {
+        if (typeof analyticsVisitsUnsubscribe === 'function') {
+            analyticsVisitsUnsubscribe();
+        }
+        if (typeof analyticsPropertiesUnsubscribe === 'function') {
+            analyticsPropertiesUnsubscribe();
+        }
+        bindAnalyticsFilters();
+        analyticsVisitsUnsubscribe = db.collection('visit_requests').onSnapshot(function (snapshot) {
+            analyticsVisitsCache = [];
+            snapshot.forEach(function (doc) {
+                var data = doc.data() || {};
+                data.id = doc.id;
+                analyticsVisitsCache.push(data);
+            });
+            sortByUpdatedDesc(analyticsVisitsCache);
+            populateAnalyticsAreaFilter();
+            renderAnalytics();
+        }, function (error) {
+            handleError('تعذر تحميل تحليلات الزيارات', error);
+        });
+        analyticsPropertiesUnsubscribe = db.collection('properties').onSnapshot(function (snapshot) {
+            analyticsPropertiesCache = [];
+            soldPropertiesCache = [];
+            snapshot.forEach(function (doc) {
+                var data = normalizeProperty(doc.data() || {});
+                data.id = doc.id;
+                analyticsPropertiesCache.push(data);
+                if (data.status === 'sold') {
+                    soldPropertiesCache.push(data);
+                }
+            });
+            sortByUpdatedDesc(analyticsPropertiesCache);
+            sortByUpdatedDesc(soldPropertiesCache);
+            populateAnalyticsAreaFilter();
+            renderAnalytics();
+            renderInterestedCustomers();
+        }, function (error) {
+            handleError('تعذر تحميل تحليلات العقارات', error);
+        });
+    }
+
+    function renderInterestedCustomers() {
+        var container = el('interestedCustomersList');
+        var html = '';
+        var i;
+        var visit;
+        var property;
+        var phone;
+        var priceValue;
+        if (!container) {
+            return;
+        }
+        if (!interestedCustomersCache.length) {
+            container.innerHTML = '<div class="empty-state">لا يوجد عملاء مهتمون حالياً.</div>';
+            return;
+        }
+        for (i = 0; i < interestedCustomersCache.length; i++) {
+            visit = interestedCustomersCache[i];
+            property = findPropertyById(getVisitPropertyId(visit));
+            phone = normalizePhoneNumber(visit.userPhone || visit.phone || '');
+            priceValue = visit.finalPrice || (property ? property.price : '');
+            html += '<div class="admin-card interested-card">';
+            html += '<div class="card-body">';
+            html += '<div class="card-head"><h3>' + escapeHtml(visit.userName || 'عميل مهتم') + '</h3>' + (visit.dealClosed ? '<span class="status-badge status-completed">مغلق</span>' : '<span class="status-badge status-accepted">مهتم</span>') + '</div>';
+            html += '<p><i class="fa-solid fa-phone"></i> ' + escapeHtml(visit.userPhone || '-') + '</p>';
+            html += '<p><i class="fa-solid fa-house"></i> ' + escapeHtml(visit.propertyTitle || 'عقار') + '</p>';
+            html += '<p><i class="fa-solid fa-note-sticky"></i> ' + escapeHtml(visit.postVisitNotes || '-') + '</p>';
+            html += '<div class="price-edit"><label for="dealPrice_' + escapeJsString(visit.id) + '">السعر النهائي</label><input type="number" id="dealPrice_' + escapeJsString(visit.id) + '" value="' + escapeHtml(priceValue || '') + '" min="0"></div>';
+            html += '<div class="card-actions">';
+            if (phone) {
+                html += '<a class="btn-action whatsapp" target="_blank" rel="noopener" href="https://wa.me/' + escapeHtml(phone) + '"><i class="fa-brands fa-whatsapp"></i> تواصل عبر واتساب</a> ';
+            }
+            html += '<button type="button" class="btn-action complete" onclick="completeInterestedSale(\'' + escapeJsString(visit.id) + '\')"' + (visit.dealClosed ? ' disabled' : '') + '><i class="fa-solid fa-handshake"></i> ' + (visit.dealClosed ? 'تم إغلاق البيع' : 'تم البيع') + '</button>';
+            html += '</div></div></div>';
+        }
+        container.innerHTML = html;
+    }
+
+    function loadInterestedCustomers() {
+        if (typeof interestedCustomersUnsubscribe === 'function') {
+            interestedCustomersUnsubscribe();
+        }
+        interestedCustomersUnsubscribe = db.collection('visit_requests').where('interested', '==', true).where('status', '==', 'completed').onSnapshot(function (snapshot) {
+            interestedCustomersCache = [];
+            snapshot.forEach(function (doc) {
+                var data = doc.data() || {};
+                data.id = doc.id;
+                interestedCustomersCache.push(data);
+            });
+            sortByUpdatedDesc(interestedCustomersCache);
+            renderInterestedCustomers();
+        }, function (error) {
+            handleError('تعذر تحميل العملاء المهتمين', error);
+        });
+    }
+
+    function completeInterestedSale(visitId) {
+        var i;
+        var visit = null;
+        var propertyId;
+        var price;
+        var propertyPayload = {
+            status: 'sold',
+            soldAt: firebase.firestore.FieldValue.serverTimestamp(),
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        };
+        for (i = 0; i < interestedCustomersCache.length; i++) {
+            if (interestedCustomersCache[i].id === visitId) {
+                visit = interestedCustomersCache[i];
+                break;
+            }
+        }
+        if (!visit) {
+            notify('طلب الزيارة غير موجود', true);
+            return;
+        }
+        propertyId = getVisitPropertyId(visit);
+        if (!propertyId) {
+            notify('لا يوجد عقار مرتبط بهذا الطلب', true);
+            return;
+        }
+        price = toIntegerOrNull(getTrimmedValue('dealPrice_' + visitId));
+        if (price != null) {
+            propertyPayload.price = price;
+        }
+        db.collection('properties').doc(propertyId).set(propertyPayload, { merge: true }).then(function () {
+            var visitPayload = {
+                dealClosed: true,
+                dealClosedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            };
+            if (price != null) {
+                visitPayload.finalPrice = price;
+            }
+            return db.collection('visit_requests').doc(visitId).set(visitPayload, { merge: true });
+        }).then(function () {
+            notify('تم إغلاق الصفقة وتحديث حالة العقار');
+        }).catch(function (error) {
+            handleError('تعذر إغلاق الصفقة', error);
+        });
+    }
+
     function renderChats() {
-        var container = el('chatList');
+        var container = el('chatList') || el('chatsList');
         var html = '';
         var i;
         if (!container) {
             return;
         }
+        setText(['chatListCount'], chatsCache.length);
         if (!chatsCache.length) {
             container.innerHTML = '<div class="empty-state">لا توجد محادثات</div>';
             return;
@@ -1329,12 +1849,15 @@
     }
 
     function renderConversationMessages(messages) {
-        var container = el('chatMessages');
+        var container = el('chatMessages') || el('activeChatMessages');
         var html = '';
         var i;
         if (!container) {
             return;
         }
+        showElement(el('noActiveChatState'), false);
+        showElement(el('activeChatMessages'), true);
+        showElement(el('chatReplyForm'), true);
         if (!messages.length) {
             container.innerHTML = '<div class="empty-state">ابدأ الرد على هذه المحادثة</div>';
             return;
@@ -1363,7 +1886,8 @@
                 break;
             }
         }
-        setText(['chatWindowTitle', 'activeChatTitle'], title);
+        setText(['chatWindowTitle', 'activeChatTitle', 'activeChatName'], title);
+        setInputValue('activeChatId', chatId);
         currentChatUnsubscribe = db.collection('chats').doc(chatId).collection('messages').onSnapshot(function (snapshot) {
             var messages = [];
             snapshot.forEach(function (doc) {
@@ -1472,12 +1996,12 @@
         if (!body) {
             return;
         }
-        if (!currentSession || currentSession.role !== 'admin') {
-            body.innerHTML = '<tr><td colspan="7">ليس لديك صلاحية لعرض هذا القسم</td></tr>';
+        if (!currentSession || !isAdminRole(currentSession.role)) {
+            body.innerHTML = '<tr><td colspan="5">ليس لديك صلاحية لعرض هذا القسم</td></tr>';
             return;
         }
         if (!employeesCache.length) {
-            body.innerHTML = '<tr><td colspan="7">لا يوجد موظفون</td></tr>';
+            body.innerHTML = '<tr><td colspan="5">لا يوجد موظفون</td></tr>';
             return;
         }
         for (i = 0; i < employeesCache.length; i++) {
@@ -1487,7 +2011,6 @@
             html += '<td>' + escapeHtml(item.username || '-') + '</td>';
             html += '<td>' + escapeHtml(roleLabel(item.role)) + '</td>';
             html += '<td><span class="status-badge ' + escapeHtml(item.status || 'active') + '">' + escapeHtml(item.status || 'active') + '</span></td>';
-            html += '<td>' + escapeHtml(formatDateTime(item.createdAt)) + '</td>';
             html += '<td>';
             html += '<button type="button" class="btn-action edit" onclick="editEmployee(\'' + escapeJsString(item.id) + '\')"><i class="fa-solid fa-pen"></i> تعديل</button> ';
             html += '<button type="button" class="btn-action reset" onclick="resetEmployeePassword(\'' + escapeJsString(item.id) + '\')"><i class="fa-solid fa-key"></i> OTP</button> ';
@@ -1630,21 +2153,20 @@
         if (!body) {
             return;
         }
-        if (!currentSession || currentSession.role !== 'admin') {
-            body.innerHTML = '<tr><td colspan="7">ليس لديك صلاحية لعرض هذا القسم</td></tr>';
+        if (!currentSession || !isAdminRole(currentSession.role)) {
+            body.innerHTML = '<tr><td colspan="5">ليس لديك صلاحية لعرض هذا القسم</td></tr>';
             return;
         }
         if (!usersCache.length) {
-            body.innerHTML = '<tr><td colspan="7">لا يوجد مستخدمون</td></tr>';
+            body.innerHTML = '<tr><td colspan="5">لا يوجد مستخدمون</td></tr>';
             return;
         }
         for (i = 0; i < usersCache.length; i++) {
             var item = usersCache[i];
             html += '<tr>';
             html += '<td>' + escapeHtml(item.name || '-') + '</td>';
-            html += '<td>' + escapeHtml(item.email || '-') + '</td>';
             html += '<td>' + escapeHtml(item.phone || '-') + '</td>';
-            html += '<td><span class="status-badge ' + escapeHtml(item.status || 'active') + '">' + escapeHtml(item.status || 'active') + '</span></td>';
+            html += '<td>' + escapeHtml(item.email || '-') + '</td>';
             html += '<td>' + escapeHtml(formatDateTime(item.createdAt)) + '</td>';
             html += '<td>';
             html += '<button type="button" class="btn-action reset" onclick="resetUserPassword(\'' + escapeJsString(item.id) + '\')"><i class="fa-solid fa-key"></i> OTP</button> ';
@@ -1697,16 +2219,115 @@
         });
     }
 
+    // ===== ACTIVITY LOGS =====
+    var logsCache = [];
+    var logsUnsubscribe = null;
+
+    function logActivity(type, details, userName) {
+        db.collection('activity_logs').add({
+            type: type,
+            details: details,
+            userName: userName || (currentSession ? currentSession.name || currentSession.username : 'نظام'),
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+    }
+
+    function loadLogs() {
+        if (typeof logsUnsubscribe === 'function') {
+            logsUnsubscribe();
+        }
+        logsUnsubscribe = db.collection('activity_logs').orderBy('createdAt', 'desc').limit(200).onSnapshot(function (snapshot) {
+            logsCache = [];
+            snapshot.forEach(function (doc) {
+                var data = doc.data() || {};
+                data.id = doc.id;
+                logsCache.push(data);
+            });
+            renderLogs();
+        }, function (error) {
+            handleError('تعذر تحميل السجلات', error);
+        });
+    }
+
+    function logTypeLabel(type) {
+        var labels = {
+            'property_submitted': 'عقار مقدم',
+            'property_approved': 'عقار معتمد',
+            'property_rejected': 'عقار مرفوض',
+            'property_sold': 'عقار مباع',
+            'visit_requested': 'طلب زيارة',
+            'visit_scheduled': 'زيارة مجدولة',
+            'visit_completed': 'زيارة مكتملة',
+            'visit_cancelled': 'زيارة ملغاة',
+            'user_registered': 'تسجيل مستخدم',
+            'employee_added': 'إضافة موظف',
+            'chat_message': 'رسالة محادثة',
+            'contact_form': 'رسالة تواصل',
+            'deal_closed': 'صفقة مغلقة'
+        };
+        return labels[type] || type || '-';
+    }
+
+    function renderLogs() {
+        var body = el('logsTableBody');
+        var typeFilter = getTrimmedValue('logsTypeFilter');
+        var periodFilter = getTrimmedValue('logsPeriodFilter');
+        var searchFilter = getTrimmedValue('logsSearchFilter').toLowerCase();
+        var filtered = [];
+        var now = new Date();
+        var cutoff = null;
+        var i;
+        var html = '';
+
+        if (!body) return;
+
+        if (periodFilter && periodFilter !== 'all') {
+            cutoff = new Date(now.getTime() - (parseInt(periodFilter) * 86400000));
+        }
+
+        for (i = 0; i < logsCache.length; i++) {
+            var log = logsCache[i];
+            if (typeFilter && log.type !== typeFilter) continue;
+            if (cutoff) {
+                var logDate = toDateObject(log.createdAt);
+                if (logDate && logDate < cutoff) continue;
+            }
+            if (searchFilter && (log.details || '').toLowerCase().indexOf(searchFilter) === -1 && (log.userName || '').toLowerCase().indexOf(searchFilter) === -1) continue;
+            filtered.push(log);
+        }
+
+        if (!filtered.length) {
+            body.innerHTML = '<tr><td colspan="4" class="empty-row">لا توجد سجلات مطابقة.</td></tr>';
+            return;
+        }
+
+        for (i = 0; i < filtered.length; i++) {
+            var item = filtered[i];
+            html += '<tr>';
+            html += '<td>' + escapeHtml(formatDateTime(item.createdAt)) + '</td>';
+            html += '<td><span class="status-badge status-' + escapeHtml(item.type || '') + '">' + escapeHtml(logTypeLabel(item.type)) + '</span></td>';
+            html += '<td>' + escapeHtml(item.details || '-') + '</td>';
+            html += '<td>' + escapeHtml(item.userName || '-') + '</td>';
+            html += '</tr>';
+        }
+        body.innerHTML = html;
+    }
+
+    function filterLogs() {
+        renderLogs();
+    }
+
     function bindForms() {
         var loginForm = el('adminLoginForm') || el('employeeLoginForm');
         var passwordResetForm = el('passwordResetForm') || el('employeePasswordResetForm');
         var compoundForm = el('compoundForm');
-        var propertyForm = el('adminPropertyForm') || el('propertyForm');
+        var propertyForm = el(getPropertyFormId());
         var scheduleForm = el('scheduleForm') || el('scheduleVisitForm');
         var employeeForm = el('employeeForm');
+        var chatReplyForm = el('chatReplyForm');
         var chatSendButton = el('chatSendButton');
         var chatInput = el('chatReplyInput');
-        var purposeSelect = el('adminPropertyPurpose');
+        var purposeSelect = el(getPropertyFieldId('propertyPurpose'));
 
         if (loginForm) {
             loginForm.addEventListener('submit', loginAdmin);
@@ -1725,6 +2346,12 @@
         }
         if (employeeForm) {
             employeeForm.addEventListener('submit', saveEmployee);
+        }
+        if (chatReplyForm) {
+            chatReplyForm.addEventListener('submit', function (event) {
+                event.preventDefault();
+                sendEmployeeMessage();
+            });
         }
         if (chatSendButton) {
             chatSendButton.addEventListener('click', sendEmployeeMessage);
@@ -1784,7 +2411,13 @@
     window.closeScheduleModal = closeScheduleModal;
     window.confirmSchedule = confirmSchedule;
     window.completeVisit = completeVisit;
+    window.closeCompleteVisitModal = closeCompleteVisitModal;
+    window.submitCompleteVisit = submitCompleteVisit;
     window.cancelVisit = cancelVisit;
+    window.markPropertySold = markPropertySold;
+    window.loadAnalytics = loadAnalytics;
+    window.loadInterestedCustomers = loadInterestedCustomers;
+    window.completeInterestedSale = completeInterestedSale;
     window.loadChats = loadChats;
     window.openChatConversation = openChatConversation;
     window.sendEmployeeMessage = sendEmployeeMessage;
@@ -1811,6 +2444,15 @@
     window.saveProperty = saveAdminProperty;
     window.saveVisitSchedule = confirmSchedule;
     window.filterVisitRequests = filterVisits;
+    window.filterLogs = filterLogs;
+    window.loadLogs = loadLogs;
+    window.logActivity = logActivity;
+    window.sendAdminReply = function (event) {
+        if (event && typeof event.preventDefault === 'function') {
+            event.preventDefault();
+        }
+        sendEmployeeMessage();
+    };
     window.refreshAdminData = function () {
         loadDashboardData();
         loadCompounds();
@@ -1821,6 +2463,9 @@
         loadContacts();
         loadEmployees();
         loadUsers();
+        loadAnalytics();
+        loadInterestedCustomers();
+        loadLogs();
     };
     window.editCompoundByName = function (name) {
         var i;

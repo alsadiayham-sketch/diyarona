@@ -481,9 +481,20 @@
         var ownerName = document.getElementById('propOwnerName').value.trim();
         var ownerPhone = document.getElementById('propOwnerPhone').value.trim();
 
-        // Validation
-        if (!title || !type || !purpose || !price || !city || !area || !size || !ownerName || !ownerPhone) {
-            showToast('يرجى ملء جميع الحقول المطلوبة (*)');
+        // Validation with specific feedback
+        var missing = [];
+        if (!title) missing.push('عنوان العقار');
+        if (!type) missing.push('نوع العقار');
+        if (!purpose) missing.push('الغرض');
+        if (!price) missing.push('السعر');
+        if (!city) missing.push('المدينة');
+        if (!area) missing.push('الحي / المنطقة');
+        if (!size) missing.push('المساحة');
+        if (!ownerName) missing.push('الاسم الكامل');
+        if (!ownerPhone) missing.push('رقم الهاتف');
+
+        if (missing.length > 0) {
+            showToast('يرجى ملء: ' + missing.join('، '));
             return;
         }
 
@@ -506,20 +517,22 @@
             floor: parseInt(document.getElementById('propFloor').value) || 0,
             features: features, images: uploadedImages,
             description: document.getElementById('propDescription').value.trim(),
+            submittedBy: ownerName,
+            submitterPhone: ownerPhone,
             ownerName: ownerName, ownerPhone: ownerPhone,
             ownerEmail: document.getElementById('propOwnerEmail').value.trim(),
             status: 'pending',
-            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-            submittedBy: currentUser ? currentUser.id : 'guest'
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
         };
 
         db.collection('properties').add(propertyData).then(function () {
-            showToast('تم إرسال عقارك بنجاح! سنراجعه ونتواصل معك');
+            showToast('تم إرسال عقارك بنجاح! سنراجعه ونتواصل معك ✓');
             document.getElementById('listPropertyForm').reset();
             uploadedImages = [];
             renderImagePreviews();
             btn.disabled = false;
             btn.innerHTML = '<i class="fas fa-paper-plane"></i> أرسل طلب العرض';
+            window.scrollTo({ top: document.getElementById('list-property').offsetTop - 80, behavior: 'smooth' });
         }).catch(function (err) {
             showToast('حدث خطأ، يرجى المحاولة مرة أخرى');
             console.error(err);

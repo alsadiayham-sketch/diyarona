@@ -205,9 +205,9 @@
                     <div class="form-section">
                         <h3><i class="fas fa-info-circle"></i> معلومات أساسية</h3>
                         <div class="form-row">
-                            <div class="form-group"><label>عنوان العقار *</label><input type="text" id="propTitle" required placeholder="مثال: شقة فاخرة في رام الله"></div>
+                            <div class="form-group"><label>عنوان العقار *</label><input type="text" id="propTitle" placeholder="مثال: شقة فاخرة في رام الله"></div>
                             <div class="form-group"><label>نوع العقار *</label>
-                                <select id="propType" required>
+                                <select id="propType">
                                     <option value="">اختر النوع</option>
                                     <option value="شقة">شقة</option><option value="فيلا">فيلا</option><option value="أرض">أرض</option>
                                     <option value="مكتب">مكتب تجاري</option><option value="محل">محل تجاري</option><option value="مستودع">مستودع</option>
@@ -217,11 +217,11 @@
                         </div>
                         <div class="form-row">
                             <div class="form-group"><label>الغرض *</label>
-                                <select id="propPurpose" required onchange="toggleRentPeriod()">
+                                <select id="propPurpose" onchange="toggleRentPeriod()">
                                     <option value="">اختر الغرض</option><option value="بيع">للبيع</option><option value="إيجار">للإيجار</option>
                                 </select>
                             </div>
-                            <div class="form-group"><label>السعر (₪) *</label><input type="number" id="propPrice" required placeholder="350000"></div>
+                            <div class="form-group"><label>السعر (₪) *</label><input type="number" id="propPrice" placeholder="350000"></div>
                         </div>
                         <div class="form-row hidden" id="rentPeriodRow">
                             <div class="form-group"><label>فترة الإيجار</label>
@@ -235,14 +235,14 @@
                         <h3><i class="fas fa-map-marker-alt"></i> الموقع</h3>
                         <div class="form-row">
                             <div class="form-group"><label>المدينة *</label>
-                                <select id="propCity" required>
+                                <select id="propCity">
                                     <option value="">اختر المدينة</option>
                                     <option value="رام الله">رام الله</option><option value="نابلس">نابلس</option><option value="الخليل">الخليل</option>
                                     <option value="بيت لحم">بيت لحم</option><option value="جنين">جنين</option><option value="طولكرم">طولكرم</option>
                                     <option value="قلقيلية">قلقيلية</option><option value="أريحا">أريحا</option><option value="القدس">القدس</option><option value="غزة">غزة</option>
                                 </select>
                             </div>
-                            <div class="form-group"><label>الحي / المنطقة *</label><input type="text" id="propArea" required placeholder="مثال: الماصيون"></div>
+                            <div class="form-group"><label>الحي / المنطقة *</label><input type="text" id="propArea" placeholder="مثال: الماصيون"></div>
                         </div>
                         <div class="form-group full-width"><label>العنوان التفصيلي</label><input type="text" id="propAddress" placeholder="شارع، رقم بناية، طابق..."></div>
                     </div>
@@ -250,7 +250,7 @@
                     <div class="form-section">
                         <h3><i class="fas fa-ruler-combined"></i> تفاصيل العقار</h3>
                         <div class="form-row four-cols">
-                            <div class="form-group"><label>المساحة (م²) *</label><input type="number" id="propSize" required placeholder="150"></div>
+                            <div class="form-group"><label>المساحة (م²) *</label><input type="number" id="propSize" placeholder="150"></div>
                             <div class="form-group"><label>عدد الغرف</label><input type="number" id="propBedrooms" placeholder="3"></div>
                             <div class="form-group"><label>عدد الحمامات</label><input type="number" id="propBathrooms" placeholder="2"></div>
                             <div class="form-group"><label>الطابق</label><input type="number" id="propFloor" placeholder="2"></div>
@@ -293,8 +293,8 @@
                     <div class="form-section">
                         <h3><i class="fas fa-user"></i> معلومات التواصل</h3>
                         <div class="form-row">
-                            <div class="form-group"><label>الاسم الكامل *</label><input type="text" id="propOwnerName" required placeholder="اسمك الكامل"></div>
-                            <div class="form-group"><label>رقم الهاتف *</label><input type="tel" id="propOwnerPhone" required placeholder="05XXXXXXXX"></div>
+                            <div class="form-group"><label>الاسم الكامل *</label><input type="text" id="propOwnerName" placeholder="اسمك الكامل"></div>
+                            <div class="form-group"><label>رقم الهاتف *</label><input type="tel" id="propOwnerPhone" placeholder="05XXXXXXXX"></div>
                         </div>
                         <div class="form-group full-width"><label>البريد الإلكتروني</label><input type="email" id="propOwnerEmail" placeholder="email@example.com"></div>
                     </div>

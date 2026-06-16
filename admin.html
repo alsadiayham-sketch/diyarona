@@ -79,17 +79,17 @@
                 <button type="button" class="nav-item active" data-tab="dashboard" onclick="switchAdminTab('dashboard')">
                     <span><i class="fa-solid fa-chart-line"></i> الرئيسية</span>
                 </button>
-                <button type="button" class="nav-item" data-tab="compounds" onclick="switchAdminTab('compounds')">
+                <button type="button" class="nav-item" data-tab="compounds" data-role-only="property_manager" onclick="switchAdminTab('compounds')">
                     <span><i class="fa-solid fa-building-circle-check"></i> المجمعات</span>
                 </button>
-                <button type="button" class="nav-item" data-tab="properties" onclick="switchAdminTab('properties')">
+                <button type="button" class="nav-item" data-tab="properties" data-role-only="sales" onclick="switchAdminTab('properties')">
                     <span><i class="fa-solid fa-house"></i> العقارات</span>
                 </button>
-                <button type="button" class="nav-item" data-tab="pending" onclick="switchAdminTab('pending')">
+                <button type="button" class="nav-item" data-tab="pending" data-role-only="sales" onclick="switchAdminTab('pending')">
                     <span><i class="fa-solid fa-clock"></i> العقارات المعلقة</span>
                     <span class="badge" id="pendingPropertiesBadge">0</span>
                 </button>
-                <button type="button" class="nav-item" data-tab="visits" onclick="switchAdminTab('visits')">
+                <button type="button" class="nav-item" data-tab="visits" data-role-only="property_manager" onclick="switchAdminTab('visits')">
                     <span><i class="fa-solid fa-calendar-check"></i> طلبات الزيارة</span>
                     <span class="badge" id="pendingVisitsBadge">0</span>
                 </button>
@@ -100,11 +100,20 @@
                 <button type="button" class="nav-item" data-tab="contacts" onclick="switchAdminTab('contacts')">
                     <span><i class="fa-solid fa-envelope-open-text"></i> رسائل التواصل</span>
                 </button>
-                <button type="button" class="nav-item" data-tab="employees" data-role-only="admin" onclick="switchAdminTab('employees')">
+                <button type="button" class="nav-item" data-tab="analytics" onclick="switchAdminTab('analytics')">
+                    <span><i class="fa-solid fa-chart-pie"></i> التحليلات</span>
+                </button>
+                <button type="button" class="nav-item" data-tab="interested" data-role-only="sales,admin,manager" onclick="switchAdminTab('interested')">
+                    <span><i class="fa-solid fa-user-check"></i> العملاء المهتمون</span>
+                </button>
+                <button type="button" class="nav-item" data-tab="employees" data-role-only="admin,manager" onclick="switchAdminTab('employees')">
                     <span><i class="fa-solid fa-user-tie"></i> الموظفون</span>
                 </button>
-                <button type="button" class="nav-item" data-tab="users" data-role-only="admin" onclick="switchAdminTab('users')">
+                <button type="button" class="nav-item" data-tab="users" data-role-only="admin,manager" onclick="switchAdminTab('users')">
                     <span><i class="fa-solid fa-users"></i> المستخدمون</span>
+                </button>
+                <button type="button" class="nav-item" data-tab="logs" data-role-only="admin,manager" onclick="switchAdminTab('logs')">
+                    <span><i class="fa-solid fa-clock-rotate-left"></i> سجل النشاطات</span>
                 </button>
             </nav>
 
@@ -205,7 +214,7 @@
                 </div>
             </section>
 
-            <section id="tab-compounds" class="tab-content hidden">
+            <section id="tab-compounds" class="tab-content hidden" data-role-only="property_manager">
                 <div class="section-head with-actions">
                     <div>
                         <h2>إدارة المجمعات المميزة</h2>
@@ -368,7 +377,7 @@
                 </div>
             </section>
 
-            <section id="tab-properties" class="tab-content hidden">
+            <section id="tab-properties" class="tab-content hidden" data-role-only="sales">
                 <div class="section-head with-actions">
                     <div>
                         <h2>العقارات المعتمدة</h2>
@@ -402,7 +411,7 @@
                 </div>
             </section>
 
-            <section id="tab-pending" class="tab-content hidden">
+            <section id="tab-pending" class="tab-content hidden" data-role-only="sales">
                 <div class="section-head">
                     <div>
                         <h2>العقارات المعلقة</h2>
@@ -414,7 +423,7 @@
                 </div>
             </section>
 
-            <section id="tab-visits" class="tab-content hidden">
+            <section id="tab-visits" class="tab-content hidden" data-role-only="property_manager">
                 <div class="section-head with-actions">
                     <div>
                         <h2>طلبات الزيارة</h2>
@@ -501,7 +510,46 @@
                 </div>
             </section>
 
-            <section id="tab-employees" class="tab-content hidden" data-role-only="admin">
+            <section id="tab-analytics" class="tab-content hidden">
+                <div class="section-head">
+                    <h2>التحليلات والإحصائيات</h2>
+                </div>
+                <div class="analytics-filters">
+                    <select id="analyticsAreaFilter"><option value="">كل المناطق</option></select>
+                    <select id="analyticsStatusFilter">
+                        <option value="">كل الحالات</option>
+                        <option value="pending">قيد الانتظار</option>
+                        <option value="accepted">مجدولة</option>
+                        <option value="completed">مكتملة</option>
+                        <option value="cancelled">ملغاة</option>
+                    </select>
+                    <select id="analyticsPeriodFilter">
+                        <option value="30">آخر 30 يوم</option>
+                        <option value="90">آخر 3 أشهر</option>
+                        <option value="365">آخر سنة</option>
+                        <option value="all">الكل</option>
+                    </select>
+                </div>
+                <div class="stats-grid" id="analyticsStats"></div>
+                <div class="table-responsive" style="margin-top:20px">
+                    <table class="data-table">
+                        <thead><tr><th>المؤشر</th><th>القيمة</th></tr></thead>
+                        <tbody id="analyticsTableBody"></tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section id="tab-interested" class="tab-content hidden" data-role-only="sales,admin,manager">
+                <div class="section-head">
+                    <h2>العملاء المهتمون</h2>
+                    <p>متابعة العملاء الذين أبدوا اهتماماً بعد زيارة العقارات.</p>
+                </div>
+                <div class="cards-grid" id="interestedCustomersList">
+                    <div class="empty-state">لا يوجد عملاء مهتمون حالياً.</div>
+                </div>
+            </section>
+
+            <section id="tab-employees" class="tab-content hidden" data-role-only="admin,manager">
                 <div class="section-head with-actions">
                     <div>
                         <h2>إدارة الموظفين</h2>
@@ -533,7 +581,7 @@
                 </div>
             </section>
 
-            <section id="tab-users" class="tab-content hidden" data-role-only="admin">
+            <section id="tab-users" class="tab-content hidden" data-role-only="admin,manager">
                 <div class="section-head">
                     <div>
                         <h2>المستخدمون المشترون</h2>
@@ -559,6 +607,54 @@
                     </table>
                 </div>
             </section>
+
+            <section id="tab-logs" class="tab-content hidden" data-role-only="admin,manager">
+                <div class="section-head with-actions">
+                    <div>
+                        <h2>سجل النشاطات</h2>
+                        <p>جميع العمليات والأنشطة على المنصة.</p>
+                    </div>
+                </div>
+                <div class="analytics-filters">
+                    <select id="logsTypeFilter" onchange="filterLogs()">
+                        <option value="">كل الأنواع</option>
+                        <option value="property_submitted">عقار مقدم</option>
+                        <option value="property_approved">عقار معتمد</option>
+                        <option value="property_rejected">عقار مرفوض</option>
+                        <option value="property_sold">عقار مباع</option>
+                        <option value="visit_requested">طلب زيارة</option>
+                        <option value="visit_scheduled">زيارة مجدولة</option>
+                        <option value="visit_completed">زيارة مكتملة</option>
+                        <option value="visit_cancelled">زيارة ملغاة</option>
+                        <option value="user_registered">تسجيل مستخدم</option>
+                        <option value="employee_added">إضافة موظف</option>
+                        <option value="chat_message">رسالة محادثة</option>
+                        <option value="contact_form">رسالة تواصل</option>
+                    </select>
+                    <select id="logsPeriodFilter" onchange="filterLogs()">
+                        <option value="7">آخر 7 أيام</option>
+                        <option value="30" selected>آخر 30 يوم</option>
+                        <option value="90">آخر 3 أشهر</option>
+                        <option value="all">الكل</option>
+                    </select>
+                    <input type="text" id="logsSearchFilter" placeholder="بحث..." oninput="filterLogs()" style="padding:8px 14px;border:2px solid #e2e8f0;border-radius:8px;font-family:var(--font);font-size:0.85rem;">
+                </div>
+                <div class="table-responsive">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>التاريخ</th>
+                                <th>النوع</th>
+                                <th>التفاصيل</th>
+                                <th>المستخدم</th>
+                            </tr>
+                        </thead>
+                        <tbody id="logsTableBody">
+                            <tr><td colspan="4" class="empty-row">لا توجد سجلات.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
         </main>
     </div>
 
@@ -572,6 +668,7 @@
             </div>
             <form id="propertyForm" class="admin-form" onsubmit="saveProperty(event)">
                 <input type="hidden" id="propertyId" name="propertyId">
+                <input type="hidden" id="propertyStatus" name="propertyStatus" value="approved">
                 <div class="form-row two-cols">
                     <div class="form-group">
                         <label for="propertyTitle">عنوان العقار</label>
@@ -610,6 +707,12 @@
                     <div class="form-group">
                         <label for="propertyPrice">السعر</label>
                         <input type="number" id="propertyPrice" name="propertyPrice" min="0" required>
+                    </div>
+                </div>
+                <div class="form-row hidden" id="propertyRentPeriodRow">
+                    <div class="form-group">
+                        <label for="propertyRentPeriod">فترة الإيجار</label>
+                        <input type="text" id="propertyRentPeriod" name="propertyRentPeriod" placeholder="شهري / سنوي">
                     </div>
                 </div>
                 <div class="form-row three-cols">
@@ -710,6 +813,32 @@
         </div>
     </div>
 
+    <div id="completeVisitModal" class="modal-overlay hidden">
+        <div class="modal">
+            <div class="modal-header">
+                <h2>إتمام الزيارة</h2>
+                <button type="button" class="modal-close" onclick="closeCompleteVisitModal()"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <form id="completeVisitForm" class="admin-form" onsubmit="submitCompleteVisit(event)">
+                <input type="hidden" id="completeVisitId">
+                <div class="form-group">
+                    <label for="postVisitNotes">ملاحظات ما بعد الزيارة</label>
+                    <textarea id="postVisitNotes" rows="4" required></textarea>
+                </div>
+                <div class="form-group">
+                    <label>هل العميل مهتم؟</label>
+                    <div class="radio-group">
+                        <label><input type="radio" name="clientInterested" value="yes" required> نعم، مهتم</label>
+                        <label><input type="radio" name="clientInterested" value="no"> لا، غير مهتم</label>
+                    </div>
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary"><i class="fa-solid fa-check"></i> إتمام</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <div id="employeeModal" class="modal-overlay hidden">
         <div class="modal">
             <div class="modal-header">
@@ -737,7 +866,7 @@
                     <select id="employeeRole" name="employeeRole" required>
                         <option value="sales">مبيعات</option>
                         <option value="property_manager">مدير عقارات</option>
-                        <option value="compound_manager">مدير مجمعات</option>
+                        <option value="manager">مدير</option>
                     </select>
                 </div>
                 <div class="form-actions">
