@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ديارنا - مشروع</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .compound-page { max-width: 1200px; margin: 0 auto; padding: 30px 20px; min-height: 100vh; }
+        .compound-back { display: inline-flex; align-items: center; gap: 8px; margin-bottom: 24px; padding: 10px 20px; background: #f7fafc; border-radius: 8px; color: #2d3748; text-decoration: none; font-weight: 600; font-size: 0.9rem; transition: background 0.3s; }
+        .compound-back:hover { background: #e2e8f0; }
+        .compound-loading { text-align: center; padding: 80px 20px; font-size: 1.2rem; color: #718096; }
+        .compound-empty { text-align: center; padding: 60px 20px; color: #718096; }
+        .compound-hero-gallery { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 8px; border-radius: 16px; overflow: hidden; margin-bottom: 35px; max-height: 420px; }
+        .compound-hero-gallery img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.3s; }
+        .compound-hero-gallery img:first-child { grid-row: span 2; }
+        .compound-hero-gallery img:hover { transform: scale(1.02); }
+        .compound-info-section { display: grid; grid-template-columns: 2fr 1fr; gap: 40px; margin-bottom: 50px; }
+        .compound-info-section h1 { font-size: 2.2rem; color: #2d3748; margin-bottom: 12px; }
+        .compound-detail-location { font-size: 1rem; color: #5cb85c; margin-bottom: 16px; font-weight: 600; }
+        .compound-detail-location i { margin-left: 6px; }
+        .compound-detail-desc { font-size: 0.95rem; color: #4a5568; line-height: 1.9; margin-bottom: 20px; }
+        .compound-stats { display: flex; gap: 16px; margin: 24px 0; flex-wrap: wrap; }
+        .compound-stat { text-align: center; padding: 18px 22px; background: linear-gradient(135deg, #f0fff4 0%, #e6fffa 100%); border-radius: 12px; min-width: 120px; border: 1px solid #c6f6d5; }
+        .compound-stat-value { display: block; font-size: 1.5rem; font-weight: 900; color: #5cb85c; }
+        .compound-stat-label { font-size: 0.78rem; color: #718096; margin-top: 4px; }
+        .compound-amenities { display: flex; gap: 10px; flex-wrap: wrap; margin: 20px 0; }
+        .compound-amenity { padding: 8px 16px; background: #ebf8ff; color: #2b6cb0; border-radius: 20px; font-size: 0.82rem; font-weight: 600; }
+        .compound-sidebar-card { background: #f7fafc; border-radius: 14px; padding: 24px; border: 1px solid #e2e8f0; position: sticky; top: 20px; }
+        .compound-sidebar-card h3 { color: #2d3748; margin-bottom: 14px; font-size: 1.1rem; }
+        .compound-quick-list { list-style: none; padding: 0; margin: 0 0 18px 0; }
+        .compound-quick-list li { padding: 10px 0; border-bottom: 1px solid #e2e8f0; font-size: 0.88rem; color: #4a5568; }
+        .compound-quick-list li:last-child { border-bottom: none; }
+        .compound-quick-list li strong { color: #2d3748; }
+        .compound-actions { display: flex; flex-direction: column; gap: 10px; }
+        .btn-request-visit { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 12px 20px; background: #5cb85c; color: white; border: none; border-radius: 8px; font-family: 'Cairo', sans-serif; font-weight: 700; font-size: 0.9rem; cursor: pointer; transition: background 0.3s; }
+        .btn-request-visit:hover { background: #449d44; }
+        .btn-whatsapp { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 12px 20px; background: #25d366; color: white; border: none; border-radius: 8px; font-family: 'Cairo', sans-serif; font-weight: 700; font-size: 0.9rem; cursor: pointer; transition: background 0.3s; }
+        .btn-whatsapp:hover { background: #1ea952; }
+        .compound-properties-section { margin-top: 40px; }
+        .compound-properties-section h2 { font-size: 1.4rem; color: #2d3748; margin-bottom: 8px; }
+        .compound-properties-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+        .compound-properties-summary { font-size: 0.85rem; color: #718096; }
+        .compound-filter-bar { display: flex; gap: 12px; margin-bottom: 24px; flex-wrap: wrap; }
+        .compound-filter-bar select { padding: 10px 16px; border: 2px solid #e2e8f0; border-radius: 8px; font-family: 'Cairo', sans-serif; font-size: 0.85rem; background: white; transition: border-color 0.3s; }
+        .compound-filter-bar select:focus { border-color: #5cb85c; outline: none; }
+        .compound-properties-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 22px; }
+        .compound-property-card { background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 12px rgba(0,0,0,0.06); border: 1px solid #e2e8f0; transition: transform 0.3s, box-shadow 0.3s; }
+        .compound-property-card:hover { transform: translateY(-4px); box-shadow: 0 8px 25px rgba(0,0,0,0.1); }
+        .compound-property-image img { width: 100%; height: 200px; object-fit: cover; }
+        .compound-property-body { padding: 18px; }
+        .compound-property-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
+        .compound-property-top h3 { font-size: 1rem; color: #2d3748; margin: 0; }
+        .compound-property-price { color: #5cb85c; font-weight: 800; font-size: 0.95rem; white-space: nowrap; }
+        .compound-property-location { font-size: 0.82rem; color: #718096; margin-bottom: 10px; }
+        .compound-property-meta { display: flex; gap: 14px; margin-bottom: 14px; }
+        .compound-property-meta span { font-size: 0.8rem; color: #4a5568; display: flex; align-items: center; gap: 4px; }
+        .compound-property-meta span i { color: #5cb85c; }
+        .compound-visit-btn { width: 100%; padding: 10px; background: #5cb85c; color: white; border: none; border-radius: 8px; font-family: 'Cairo', sans-serif; font-weight: 700; cursor: pointer; transition: background 0.3s; }
+        .compound-visit-btn:hover { background: #449d44; }
+        /* Visit Modal */
+        .visit-modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 6000; display: flex; align-items: center; justify-content: center; padding: 20px; }
+        .visit-modal { background: white; border-radius: 14px; padding: 30px; width: 100%; max-width: 460px; }
+        .visit-modal h3 { margin-bottom: 18px; color: #2d3748; }
+        .visit-modal .form-group { margin-bottom: 14px; }
+        .visit-modal label { display: block; font-weight: 600; font-size: 0.85rem; margin-bottom: 5px; color: #2d3748; }
+        .visit-modal input, .visit-modal select { width: 100%; padding: 10px 14px; border: 2px solid #e2e8f0; border-radius: 8px; font-family: 'Cairo', sans-serif; }
+        .visit-modal input:focus, .visit-modal select:focus { border-color: #5cb85c; outline: none; }
+        .visit-modal button[type="submit"] { width: 100%; padding: 12px; background: #5cb85c; color: white; border: none; border-radius: 8px; font-family: 'Cairo', sans-serif; font-weight: 700; cursor: pointer; margin-top: 10px; }
+        @media (max-width: 768px) {
+            .compound-hero-gallery { grid-template-columns: 1fr; max-height: 250px; }
+            .compound-hero-gallery img:first-child { grid-row: auto; }
+            .compound-info-section { grid-template-columns: 1fr; }
+            .compound-sidebar-card { position: static; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Back Navigation -->
+    <div class="compound-page">
+        <a href="/" class="compound-back"><i class="fas fa-arrow-right"></i> العودة للرئيسية</a>
+        <div id="compoundContent">
+            <div class="compound-loading"><i class="fas fa-spinner fa-spin"></i> جاري تحميل تفاصيل المشروع...</div>
+        </div>
+    </div>
+
+    <!-- Visit Request Modal -->
+    <div id="compoundVisitModal" class="visit-modal-overlay hidden">
+        <div class="visit-modal">
+            <h3><i class="fas fa-calendar-check"></i> طلب زيارة</h3>
+            <form id="compoundVisitForm">
+                <div id="compoundVisitGuestFields">
+                    <div class="form-group">
+                        <label>الاسم الكامل *</label>
+                        <input type="text" id="cvName" placeholder="اسمك الكامل">
+                    </div>
+                    <div class="form-group">
+                        <label>رقم الهاتف *</label>
+                        <input type="tel" id="cvPhone" placeholder="05XXXXXXXX">
+                    </div>
+                    <div class="form-group">
+                        <label>البريد الإلكتروني</label>
+                        <input type="email" id="cvEmail" placeholder="email@example.com">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>التاريخ المفضل *</label>
+                    <input type="date" id="cvDate">
+                </div>
+                <div class="form-group">
+                    <label>الوقت المفضل</label>
+                    <select id="cvTime">
+                        <option value="صباحاً (9-12)">صباحاً (9-12)</option>
+                        <option value="ظهراً (12-3)">ظهراً (12-3)</option>
+                        <option value="مساءً (3-6)">مساءً (3-6)</option>
+                    </select>
+                </div>
+                <input type="hidden" id="cvPropertyId">
+                <input type="hidden" id="cvPropertyTitle">
+                <button type="submit"><i class="fas fa-paper-plane"></i> إرسال الطلب</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div class="toast hidden" id="toast" style="position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#2d3748;color:white;padding:12px 24px;border-radius:8px;font-family:'Cairo',sans-serif;font-weight:600;z-index:9999;"></div>
+
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <script src="firebase-config.js"></script>
+    <script>
+    (function () {
+        'use strict';
+
+        var SLUG_MAP = {
+            'alnakheel': 'النخيل',
+            'alarz': 'الأرز',
+            'allaymoun': 'الليمون'
+        };
+
+        var compoundData = null;
+        var compoundProperties = [];
+        var filteredProperties = [];
+
+        function getSlug() {
+            var params = new URLSearchParams(window.location.search);
+            return params.get('slug') || '';
+        }
+
+        function escapeHtml(str) {
+            var div = document.createElement('div');
+            div.textContent = str == null ? '' : String(str);
+            return div.innerHTML;
+        }
+
+        function formatPrice(price) {
+            var val = parseInt(price, 10) || 0;
+            return val.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',') + ' ₪';
+        }
+
+        function showToast(msg) {
+            var toast = document.getElementById('toast');
+            if (!toast) return;
+            toast.textContent = msg;
+            toast.classList.remove('hidden');
+            setTimeout(function () { toast.classList.add('hidden'); }, 3500);
+        }
+
+        function loadCompound() {
+            var slug = getSlug();
+            var compoundName = SLUG_MAP[slug];
+            var content = document.getElementById('compoundContent');
+
+            if (!compoundName) {
+                content.innerHTML = '<div class="compound-empty"><h2>المشروع غير موجود</h2><p>يرجى العودة للصفحة الرئيسية</p></div>';
+                return;
+            }
+
+            document.title = 'ديارنا - مشروع ' + compoundName;
+
+            db.collection('compounds').where('name', '==', compoundName).limit(1).get().then(function (snap) {
+                if (snap.empty) {
+                    content.innerHTML = '<div class="compound-empty"><h2>المشروع غير موجود</h2></div>';
+                    return;
+                }
+                var doc = snap.docs[0];
+                compoundData = doc.data() || {};
+                compoundData.id = doc.id;
+
+                return db.collection('properties').where('compound', '==', doc.id).where('status', '==', 'approved').get();
+            }).then(function (propSnap) {
+                if (!propSnap) return;
+                compoundProperties = [];
+                propSnap.forEach(function (d) {
+                    var p = d.data() || {};
+                    p.id = d.id;
+                    compoundProperties.push(p);
+                });
+                filteredProperties = compoundProperties.slice(0);
+                renderPage();
+            }).catch(function (err) {
+                console.error(err);
+                content.innerHTML = '<div class="compound-empty"><h2>تعذر تحميل المشروع</h2></div>';
+            });
+        }
+
+        function renderPage() {
+            var content = document.getElementById('compoundContent');
+            var c = compoundData;
+            var images = c.images && c.images.length ? c.images.slice(0, 4) : [];
+            var html = '';
+            var i;
+
+            if (!images.length) {
+                images.push('https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=1200&h=700&fit=crop');
+            }
+            while (images.length < 4) {
+                images.push(images[images.length - 1]);
+            }
+
+            html += '<div class="compound-hero-gallery">';
+            for (i = 0; i < images.length; i++) {
+                html += '<img src="' + images[i] + '" alt="' + escapeHtml(c.name) + '">';
+            }
+            html += '</div>';
+
+            html += '<div class="compound-info-section">';
+            html += '<div>';
+            html += '<h1>' + escapeHtml(c.name) + '</h1>';
+            html += '<p class="compound-detail-location"><i class="fas fa-map-marker-alt"></i> ' + escapeHtml((c.city || '') + (c.area ? ' - ' + c.area : '')) + '</p>';
+            html += '<p class="compound-detail-desc">' + escapeHtml(c.description || c.shortDescription || '') + '</p>';
+            html += '<div class="compound-stats">';
+            if (c.totalUnits) html += '<div class="compound-stat"><span class="compound-stat-value">' + c.totalUnits + '</span><span class="compound-stat-label">إجمالي الوحدات</span></div>';
+            if (c.startingPrice) html += '<div class="compound-stat"><span class="compound-stat-value">' + formatPrice(c.startingPrice) + '</span><span class="compound-stat-label">سعر البداية</span></div>';
+            if (c.completionDate) html += '<div class="compound-stat"><span class="compound-stat-value">' + escapeHtml(c.completionDate) + '</span><span class="compound-stat-label">موعد التسليم</span></div>';
+            html += '<div class="compound-stat"><span class="compound-stat-value">' + compoundProperties.length + '</span><span class="compound-stat-label">وحدة متاحة</span></div>';
+            html += '</div>';
+            if (c.amenities && c.amenities.length) {
+                html += '<div class="compound-amenities">';
+                for (i = 0; i < c.amenities.length; i++) {
+                    html += '<span class="compound-amenity">' + escapeHtml(c.amenities[i]) + '</span>';
+                }
+                html += '</div>';
+            }
+            html += '</div>';
+
+            html += '<div class="compound-sidebar-card">';
+            html += '<h3>معلومات سريعة</h3>';
+            html += '<ul class="compound-quick-list">';
+            html += '<li><strong>المدينة:</strong> ' + escapeHtml(c.city || '-') + '</li>';
+            html += '<li><strong>المنطقة:</strong> ' + escapeHtml(c.area || '-') + '</li>';
+            html += '<li><strong>الوحدات المتاحة:</strong> ' + compoundProperties.length + '</li>';
+            html += '<li><strong>سعر البداية:</strong> ' + (c.startingPrice ? formatPrice(c.startingPrice) : 'حسب الطلب') + '</li>';
+            html += '</ul>';
+            html += '<div class="compound-actions">';
+            html += '<button type="button" class="btn-request-visit" onclick="openVisitModal(\'' + escapeHtml(c.id) + '\',\'مشروع ' + escapeHtml(c.name) + '\')"><i class="fas fa-calendar-check"></i> طلب زيارة</button>';
+            html += '<a href="https://wa.me/972569236758?text=' + encodeURIComponent('مرحباً، أنا مهتم بمشروع ' + c.name) + '" target="_blank" class="btn-whatsapp"><i class="fab fa-whatsapp"></i> واتساب</a>';
+            html += '</div>';
+            html += '</div>';
+            html += '</div>';
+
+            html += '<div class="compound-properties-section">';
+            html += '<div class="compound-properties-header"><h2>العقارات المتاحة داخل المشروع</h2><span id="propCount">' + compoundProperties.length + ' عقار</span></div>';
+            html += '<div class="compound-filter-bar">';
+            html += '<select id="filterBedrooms" onchange="applyFilters()"><option value="">كل الغرف</option><option value="1">1 غرفة</option><option value="2">2 غرف</option><option value="3">3 غرف</option><option value="4">4+ غرف</option></select>';
+            html += '<select id="filterPrice" onchange="applyFilters()"><option value="">كل الأسعار</option><option value="0-250000">أقل من 250,000 ₪</option><option value="250000-400000">250,000 - 400,000 ₪</option><option value="400000-600000">400,000 - 600,000 ₪</option><option value="600000-99999999">أكثر من 600,000 ₪</option></select>';
+            html += '<select id="filterSize" onchange="applyFilters()"><option value="">كل المساحات</option><option value="0-120">أقل من 120 م²</option><option value="120-160">120 - 160 م²</option><option value="160-220">160 - 220 م²</option><option value="220-99999">أكثر من 220 م²</option></select>';
+            html += '</div>';
+            html += '<div id="propertiesGrid" class="compound-properties-grid"></div>';
+            html += '</div>';
+
+            content.innerHTML = html;
+            renderProperties();
+        }
+
+        function renderProperties() {
+            var grid = document.getElementById('propertiesGrid');
+            var countEl = document.getElementById('propCount');
+            var html = '';
+            var i;
+
+            if (countEl) countEl.textContent = filteredProperties.length + ' عقار';
+
+            if (!filteredProperties.length) {
+                grid.innerHTML = '<div class="compound-empty">لا توجد وحدات مطابقة للفلاتر.</div>';
+                return;
+            }
+
+            for (i = 0; i < filteredProperties.length; i++) {
+                var p = filteredProperties[i];
+                var img = p.images && p.images.length ? p.images[0] : 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=400&h=300&fit=crop';
+                var priceText = formatPrice(p.price || 0);
+                if (p.purpose === 'rent' || p.purpose === 'إيجار') {
+                    priceText += ' / ' + (p.rentPeriod === 'yearly' || p.rentPeriod === 'سنوي' ? 'سنوي' : 'شهري');
+                }
+                html += '<div class="compound-property-card">';
+                html += '<div class="compound-property-image"><img src="' + img + '" alt="' + escapeHtml(p.title || '') + '"></div>';
+                html += '<div class="compound-property-body">';
+                html += '<div class="compound-property-top"><h3>' + escapeHtml(p.title || 'وحدة متاحة') + '</h3><span class="compound-property-price">' + priceText + '</span></div>';
+                html += '<p class="compound-property-location"><i class="fas fa-map-marker-alt"></i> ' + escapeHtml((p.city || '') + (p.area ? ' - ' + p.area : '')) + '</p>';
+                html += '<div class="compound-property-meta">';
+                if (p.size) html += '<span><i class="fas fa-ruler-combined"></i> ' + p.size + ' م²</span>';
+                if (p.bedrooms) html += '<span><i class="fas fa-bed"></i> ' + p.bedrooms + ' غرف</span>';
+                if (p.bathrooms) html += '<span><i class="fas fa-bath"></i> ' + p.bathrooms + ' حمام</span>';
+                html += '</div>';
+                html += '<button type="button" class="compound-visit-btn" onclick="openVisitModal(\'' + escapeHtml(p.id) + '\',\'' + escapeHtml(p.title || 'عقار') + '\')">طلب زيارة</button>';
+                html += '</div></div>';
+            }
+            grid.innerHTML = html;
+        }
+
+        window.applyFilters = function () {
+            var bedEl = document.getElementById('filterBedrooms');
+            var priceEl = document.getElementById('filterPrice');
+            var sizeEl = document.getElementById('filterSize');
+            var i;
+            filteredProperties = [];
+
+            for (i = 0; i < compoundProperties.length; i++) {
+                var p = compoundProperties[i];
+                if (bedEl && bedEl.value) {
+                    var bed = parseInt(bedEl.value, 10);
+                    if (bed === 4 && (p.bedrooms || 0) < 4) continue;
+                    if (bed < 4 && (p.bedrooms || 0) !== bed) continue;
+                }
+                if (priceEl && priceEl.value) {
+                    var pr = priceEl.value.split('-');
+                    if ((p.price || 0) < parseInt(pr[0]) || (p.price || 0) > parseInt(pr[1])) continue;
+                }
+                if (sizeEl && sizeEl.value) {
+                    var sz = sizeEl.value.split('-');
+                    if ((p.size || 0) < parseInt(sz[0]) || (p.size || 0) > parseInt(sz[1])) continue;
+                }
+                filteredProperties.push(p);
+            }
+            renderProperties();
+        };
+
+        window.openVisitModal = function (propertyId, propertyTitle) {
+            document.getElementById('cvPropertyId').value = propertyId;
+            document.getElementById('cvPropertyTitle').value = propertyTitle;
+            var today = new Date().toISOString().split('T')[0];
+            document.getElementById('cvDate').min = today;
+            document.getElementById('compoundVisitModal').classList.remove('hidden');
+        };
+
+        window.closeVisitModal = function () {
+            document.getElementById('compoundVisitModal').classList.add('hidden');
+        };
+
+        // Close modal on background click
+        document.addEventListener('click', function (e) {
+            if (e.target.id === 'compoundVisitModal') {
+                window.closeVisitModal();
+            }
+        });
+
+        // Visit form submission
+        document.addEventListener('DOMContentLoaded', function () {
+            var form = document.getElementById('compoundVisitForm');
+            if (form) {
+                form.addEventListener('submit', function (e) {
+                    e.preventDefault();
+                    var name = document.getElementById('cvName').value.trim();
+                    var phone = document.getElementById('cvPhone').value.trim();
+                    var email = document.getElementById('cvEmail').value.trim();
+                    var date = document.getElementById('cvDate').value;
+                    var time = document.getElementById('cvTime').value;
+                    var propertyId = document.getElementById('cvPropertyId').value;
+                    var propertyTitle = document.getElementById('cvPropertyTitle').value;
+
+                    if (!name || !phone || !date) {
+                        showToast('يرجى ملء الاسم ورقم الهاتف والتاريخ');
+                        return;
+                    }
+
+                    db.collection('visit_requests').add({
+                        propertyId: propertyId,
+                        propertyTitle: propertyTitle,
+                        userName: name,
+                        userPhone: phone,
+                        userEmail: email || '',
+                        preferredDates: date,
+                        preferredTime: time,
+                        status: 'pending',
+                        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                    }).then(function () {
+                        showToast('تم إرسال طلب الزيارة بنجاح ✓');
+                        window.closeVisitModal();
+                        form.reset();
+                    }).catch(function () {
+                        showToast('حدث خطأ، يرجى المحاولة مرة أخرى');
+                    });
+                });
+            }
+            loadCompound();
+        });
+    })();
+    </script>
+</body>
+</html>
