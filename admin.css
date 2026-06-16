@@ -119,9 +119,9 @@ body { font-family: var(--font); background: var(--bg-main); color: var(--text-p
 .status-badge.otp_reset { background: #e9d8fd; color: #6b46c1; }
 
 /* Visit Filters */
-.visits-filters { display: flex; gap: 8px; margin-bottom: 18px; flex-wrap: wrap; }
-.visit-filter { padding: 7px 16px; border: 2px solid var(--border); background: white; border-radius: 20px; font-family: var(--font); font-size: 0.82rem; font-weight: 600; cursor: pointer; transition: all 0.3s; }
-.visit-filter.active, .visit-filter:hover { background: var(--accent); color: white; border-color: var(--accent); }
+.visits-filters, .filter-group { display: flex; gap: 8px; margin-bottom: 18px; flex-wrap: wrap; }
+.visit-filter, .filter-btn { padding: 8px 18px; border: 2px solid var(--border); background: white; border-radius: 20px; font-family: var(--font); font-size: 0.82rem; font-weight: 600; cursor: pointer; transition: all 0.3s; color: var(--text-primary); }
+.visit-filter.active, .visit-filter:hover, .filter-btn.active, .filter-btn:hover { background: var(--accent); color: white; border-color: var(--accent); }
 
 /* Chat Layout */
 .chat-layout { display: grid; grid-template-columns: 280px 1fr; gap: 18px; height: 550px; }
@@ -197,6 +197,25 @@ body { font-family: var(--font); background: var(--bg-main); color: var(--text-p
 .admin-image-previews { display: flex; gap: 6px; margin-top: 6px; flex-wrap: wrap; }
 .admin-image-previews img { width: 55px; height: 55px; object-fit: cover; border-radius: 6px; }
 
+/* Card Components */
+.card-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-wrap: wrap; gap: 8px; }
+.card-cover { margin: -18px -18px 14px -18px; }
+.card-cover img { width: 100%; height: 160px; object-fit: cover; }
+.card-body { }
+.card-body p { font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 6px; }
+.card-body p i { color: var(--accent); width: 18px; margin-left: 4px; }
+.card-actions { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 12px; }
+.empty-state { text-align: center; padding: 40px 20px; color: var(--text-secondary); font-size: 0.92rem; }
+
+/* Status Badges */
+.status-badge { display: inline-block; padding: 4px 12px; border-radius: 12px; font-size: 0.74rem; font-weight: 700; }
+.status-badge.pending, .status-badge.status-pending { background: #fefcbf; color: #975a16; }
+.status-badge.accepted, .status-badge.status-accepted { background: #c6f6d5; color: #276749; }
+.status-badge.completed, .status-badge.status-completed { background: #bee3f8; color: #2a4365; }
+.status-badge.cancelled, .status-badge.status-cancelled { background: #fed7d7; color: #c53030; }
+.status-badge.active, .status-badge.status-active { background: #c6f6d5; color: #276749; }
+.status-badge.otp_reset, .status-badge.status-otp_reset { background: #e9d8fd; color: #6b46c1; }
+
 /* Stats Grid */
 .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 18px; margin-bottom: 24px; }
 .stat-card { background: var(--bg-card); padding: 22px 18px; border-radius: var(--radius); box-shadow: var(--shadow); display: flex; align-items: center; gap: 14px; }
@@ -241,7 +260,12 @@ body { font-family: var(--font); background: var(--bg-main); color: var(--text-p
 /* Sidebar Logo */
 .sidebar-logo { font-size: 1.8rem; color: var(--accent); }
 
-/* Notice */
+/* Notice / Toast */
+.admin-toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); padding: 14px 28px; border-radius: 10px; font-family: var(--font); font-weight: 700; font-size: 0.9rem; z-index: 9999; box-shadow: 0 4px 20px rgba(0,0,0,0.15); transition: opacity 0.3s, transform 0.3s; opacity: 1; }
+.admin-toast.hidden { opacity: 0; pointer-events: none; transform: translateX(-50%) translateY(-10px); }
+.admin-toast.success { background: #c6f6d5; color: #276749; border: 1px solid #9ae6b4; }
+.admin-toast.error { background: #fed7d7; color: #c53030; border: 1px solid #feb2b2; }
+
 .notice { padding: 12px 16px; border-radius: 8px; margin-bottom: 16px; font-weight: 600; font-size: 0.88rem; display: none; }
 .notice.success { display: block; background: #c6f6d5; color: #276749; }
 .notice.error { display: block; background: #fed7d7; color: #c53030; }

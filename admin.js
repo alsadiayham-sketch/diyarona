@@ -98,18 +98,17 @@
     }
 
     function notify(message, isError) {
-        var notice = el('adminNotice');
-        if (notice) {
-            notice.textContent = message;
-            notice.className = isError ? 'notice error' : 'notice success';
-            showElement(notice, true);
+        var toast = el('adminToast');
+        if (toast) {
+            toast.textContent = message;
+            toast.className = 'admin-toast ' + (isError ? 'error' : 'success');
+            clearTimeout(toast._timer);
+            toast._timer = setTimeout(function () {
+                toast.className = 'admin-toast hidden';
+            }, 4000);
         }
-        if (typeof window.showToast === 'function') {
-            window.showToast(message);
-        } else if (isError && typeof window.alert === 'function') {
-            window.alert(message);
-        } else if (window.console && console.log) {
-            console.log(message);
+        if (window.console && console.log) {
+            console.log((isError ? '[ERROR] ' : '[OK] ') + message);
         }
     }
 
@@ -938,7 +937,10 @@
             html += '<td>' + escapeHtml(formatPrice(item.price || 0)) + '</td>';
             html += '<td>' + escapeHtml(item.purpose || '-') + '</td>';
             html += '<td>' + escapeHtml((compoundsMap[item.compound] && compoundsMap[item.compound].name) || item.compoundName || '-') + '</td>';
-            html += '<td><button type="button" onclick="editProperty(\'' + escapeJsString(item.id) + '\')">تعديل</button> <button type="button" class="danger" onclick="deleteProperty(\'' + escapeJsString(item.id) + '\')">حذف</button></td>';
+            html += '<td>';
+            html += '<button type="button" class="btn-action edit" onclick="editProperty(\'' + escapeJsString(item.id) + '\')"><i class="fa-solid fa-pen"></i> تعديل</button> ';
+            html += '<button type="button" class="btn-action delete" onclick="deleteProperty(\'' + escapeJsString(item.id) + '\')"><i class="fa-solid fa-trash"></i> حذف</button>';
+            html += '</td>';
             html += '</tr>';
         }
         body.innerHTML = html;
@@ -967,9 +969,9 @@
             html += '<p>' + escapeHtml(item.city || '-') + ' - ' + escapeHtml(item.area || '-') + '</p>';
             html += '<p>' + escapeHtml(formatPrice(item.price || 0)) + '</p>';
             html += '<div class="card-actions">';
-            html += '<button type="button" onclick="approveProperty(\'' + escapeJsString(item.id) + '\')">اعتماد</button>';
-            html += '<button type="button" onclick="editProperty(\'' + escapeJsString(item.id) + '\')">تعديل</button>';
-            html += '<button type="button" class="danger" onclick="deleteProperty(\'' + escapeJsString(item.id) + '\')">رفض</button>';
+            html += '<button type="button" class="btn-action approve" onclick="approveProperty(\'' + escapeJsString(item.id) + '\')"><i class="fa-solid fa-check"></i> اعتماد</button>';
+            html += '<button type="button" class="btn-action edit" onclick="editProperty(\'' + escapeJsString(item.id) + '\')"><i class="fa-solid fa-pen"></i> تعديل</button>';
+            html += '<button type="button" class="btn-action delete" onclick="deleteProperty(\'' + escapeJsString(item.id) + '\')"><i class="fa-solid fa-trash"></i> رفض</button>';
             html += '</div></div></div>';
         }
         container.innerHTML = html;
@@ -1195,22 +1197,22 @@
             html += '<div class="admin-card visit-card">';
             html += '<div class="card-body">';
             html += '<div class="card-head"><h3>' + escapeHtml(visit.propertyTitle || 'عقار') + '</h3>' + statusBadge(visit.status) + '</div>';
-            html += '<p><strong>العميل:</strong> ' + escapeHtml(visit.userName || '-') + '</p>';
-            html += '<p><strong>الهاتف:</strong> ' + escapeHtml(visit.userPhone || '-') + '</p>';
-            html += '<p><strong>تم الطلب:</strong> ' + escapeHtml(formatDateTime(visit.createdAt)) + '</p>';
+            html += '<p><i class="fa-solid fa-user"></i> <strong>العميل:</strong> ' + escapeHtml(visit.userName || '-') + '</p>';
+            html += '<p><i class="fa-solid fa-phone"></i> <strong>الهاتف:</strong> ' + escapeHtml(visit.userPhone || '-') + '</p>';
+            html += '<p><i class="fa-solid fa-clock"></i> <strong>تم الطلب:</strong> ' + escapeHtml(formatDateTime(visit.createdAt)) + '</p>';
             if (visit.scheduledDate || visit.scheduledTime) {
-                html += '<p><strong>الموعد:</strong> ' + escapeHtml((visit.scheduledDate || '-') + ' ' + (visit.scheduledTime || '')) + '</p>';
+                html += '<p><i class="fa-solid fa-calendar"></i> <strong>الموعد:</strong> ' + escapeHtml((visit.scheduledDate || '-') + ' ' + (visit.scheduledTime || '')) + '</p>';
             }
             if (visit.employeeNotes) {
-                html += '<p><strong>ملاحظات:</strong> ' + escapeHtml(visit.employeeNotes) + '</p>';
+                html += '<p><i class="fa-solid fa-note-sticky"></i> <strong>ملاحظات:</strong> ' + escapeHtml(visit.employeeNotes) + '</p>';
             }
             html += '<div class="card-actions">';
             if (visit.status === 'pending') {
-                html += '<button type="button" onclick="openScheduleModal(\'' + escapeJsString(visit.id) + '\')">جدولة</button>';
-                html += '<button type="button" class="danger" onclick="cancelVisit(\'' + escapeJsString(visit.id) + '\')">إلغاء</button>';
+                html += '<button type="button" class="btn-action schedule" onclick="openScheduleModal(\'' + escapeJsString(visit.id) + '\')"><i class="fa-solid fa-calendar-plus"></i> جدولة</button> ';
+                html += '<button type="button" class="btn-action delete" onclick="cancelVisit(\'' + escapeJsString(visit.id) + '\')"><i class="fa-solid fa-ban"></i> إلغاء</button>';
             } else if (visit.status === 'accepted') {
-                html += '<button type="button" onclick="completeVisit(\'' + escapeJsString(visit.id) + '\')">إتمام</button>';
-                html += '<button type="button" class="danger" onclick="cancelVisit(\'' + escapeJsString(visit.id) + '\')">إلغاء</button>';
+                html += '<button type="button" class="btn-action complete" onclick="completeVisit(\'' + escapeJsString(visit.id) + '\')"><i class="fa-solid fa-circle-check"></i> إتمام</button> ';
+                html += '<button type="button" class="btn-action delete" onclick="cancelVisit(\'' + escapeJsString(visit.id) + '\')"><i class="fa-solid fa-ban"></i> إلغاء</button>';
             }
             html += '</div></div></div>';
         }
@@ -1470,6 +1472,10 @@
         if (!body) {
             return;
         }
+        if (!currentSession || currentSession.role !== 'admin') {
+            body.innerHTML = '<tr><td colspan="7">ليس لديك صلاحية لعرض هذا القسم</td></tr>';
+            return;
+        }
         if (!employeesCache.length) {
             body.innerHTML = '<tr><td colspan="7">لا يوجد موظفون</td></tr>';
             return;
@@ -1480,10 +1486,13 @@
             html += '<td>' + escapeHtml(item.name || '-') + '</td>';
             html += '<td>' + escapeHtml(item.username || '-') + '</td>';
             html += '<td>' + escapeHtml(roleLabel(item.role)) + '</td>';
-            html += '<td>' + escapeHtml(item.status || 'active') + '</td>';
+            html += '<td><span class="status-badge ' + escapeHtml(item.status || 'active') + '">' + escapeHtml(item.status || 'active') + '</span></td>';
             html += '<td>' + escapeHtml(formatDateTime(item.createdAt)) + '</td>';
-            html += '<td>' + escapeHtml(item.id || '-') + '</td>';
-            html += '<td><button type="button" onclick="editEmployee(\'' + escapeJsString(item.id) + '\')">تعديل</button> <button type="button" onclick="resetEmployeePassword(\'' + escapeJsString(item.id) + '\')">OTP</button> <button type="button" class="danger" onclick="removeEmployee(\'' + escapeJsString(item.id) + '\')">حذف</button></td>';
+            html += '<td>';
+            html += '<button type="button" class="btn-action edit" onclick="editEmployee(\'' + escapeJsString(item.id) + '\')"><i class="fa-solid fa-pen"></i> تعديل</button> ';
+            html += '<button type="button" class="btn-action reset" onclick="resetEmployeePassword(\'' + escapeJsString(item.id) + '\')"><i class="fa-solid fa-key"></i> OTP</button> ';
+            html += '<button type="button" class="btn-action delete" onclick="removeEmployee(\'' + escapeJsString(item.id) + '\')"><i class="fa-solid fa-trash"></i> حذف</button>';
+            html += '</td>';
             html += '</tr>';
         }
         body.innerHTML = html;
@@ -1621,6 +1630,10 @@
         if (!body) {
             return;
         }
+        if (!currentSession || currentSession.role !== 'admin') {
+            body.innerHTML = '<tr><td colspan="7">ليس لديك صلاحية لعرض هذا القسم</td></tr>';
+            return;
+        }
         if (!usersCache.length) {
             body.innerHTML = '<tr><td colspan="7">لا يوجد مستخدمون</td></tr>';
             return;
@@ -1631,10 +1644,12 @@
             html += '<td>' + escapeHtml(item.name || '-') + '</td>';
             html += '<td>' + escapeHtml(item.email || '-') + '</td>';
             html += '<td>' + escapeHtml(item.phone || '-') + '</td>';
-            html += '<td>' + escapeHtml(item.role || '-') + '</td>';
-            html += '<td>' + escapeHtml(item.status || 'active') + '</td>';
+            html += '<td><span class="status-badge ' + escapeHtml(item.status || 'active') + '">' + escapeHtml(item.status || 'active') + '</span></td>';
             html += '<td>' + escapeHtml(formatDateTime(item.createdAt)) + '</td>';
-            html += '<td><button type="button" onclick="resetUserPassword(\'' + escapeJsString(item.id) + '\')">OTP</button> <button type="button" class="danger" onclick="removeUser(\'' + escapeJsString(item.id) + '\')">حذف</button></td>';
+            html += '<td>';
+            html += '<button type="button" class="btn-action reset" onclick="resetUserPassword(\'' + escapeJsString(item.id) + '\')"><i class="fa-solid fa-key"></i> OTP</button> ';
+            html += '<button type="button" class="btn-action delete" onclick="removeUser(\'' + escapeJsString(item.id) + '\')"><i class="fa-solid fa-trash"></i> حذف</button>';
+            html += '</td>';
             html += '</tr>';
         }
         body.innerHTML = html;
@@ -1795,6 +1810,7 @@
     window.openEmployeeModal = openAddEmployeeModal;
     window.saveProperty = saveAdminProperty;
     window.saveVisitSchedule = confirmSchedule;
+    window.filterVisitRequests = filterVisits;
     window.refreshAdminData = function () {
         loadDashboardData();
         loadCompounds();

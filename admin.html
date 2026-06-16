@@ -11,6 +11,7 @@
     <link rel="stylesheet" href="admin.css">
 </head>
 <body class="admin-body">
+    <div id="adminToast" class="admin-toast hidden"></div>
     <div id="employeeLoginScreen" class="auth-screen">
         <div class="auth-card">
             <div class="auth-brand">
@@ -500,7 +501,7 @@
                 </div>
             </section>
 
-            <section id="tab-employees" class="tab-content hidden">
+            <section id="tab-employees" class="tab-content hidden" data-role-only="admin">
                 <div class="section-head with-actions">
                     <div>
                         <h2>إدارة الموظفين</h2>
@@ -532,7 +533,7 @@
                 </div>
             </section>
 
-            <section id="tab-users" class="tab-content hidden">
+            <section id="tab-users" class="tab-content hidden" data-role-only="admin">
                 <div class="section-head">
                     <div>
                         <h2>المستخدمون المشترون</h2>
