@@ -265,11 +265,14 @@
     function applyRolePermissions() {
         var nodes = document.querySelectorAll('[data-role-only]');
         var i;
+        var allowedRoles;
+        var role = currentSession ? currentSession.role : '';
         for (i = 0; i < nodes.length; i++) {
-            if (!currentSession || currentSession.role === 'admin') {
+            if (!currentSession || role === 'admin') {
                 showElement(nodes[i], true);
             } else {
-                showElement(nodes[i], nodes[i].getAttribute('data-role-only') === currentSession.role);
+                allowedRoles = nodes[i].getAttribute('data-role-only').split(',');
+                showElement(nodes[i], allowedRoles.indexOf(role) !== -1);
             }
         }
     }
@@ -283,8 +286,8 @@
     function saveSession(session) {
         currentSession = session;
         sessionStorage.setItem(SESSION_KEY, JSON.stringify(session));
-        setText(['adminSessionName', 'currentAdminName'], session.name || session.username || '');
-        setText(['adminSessionRole', 'currentAdminRole'], roleLabel(session.role));
+        setText(['adminSessionName', 'currentAdminName', 'sidebarEmployeeName'], session.name || session.username || '');
+        setText(['adminSessionRole', 'currentAdminRole', 'sidebarEmployeeRole'], roleLabel(session.role));
         applyRolePermissions();
     }
 
@@ -736,11 +739,17 @@
         setInputValue('compoundId', '');
         compoundFileImages = [];
         syncCompoundImagePreview();
-        showElement(el('compoundModal'), true);
+        var form = el('compoundForm');
+        if (form) {
+            form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
     }
 
     function closeCompoundModal() {
-        showElement(el('compoundModal'), false);
+        resetForm('compoundForm');
+        setInputValue('compoundId', '');
+        compoundFileImages = [];
+        syncCompoundImagePreview();
     }
 
     function collectImages(urlInputId, fileImages) {
@@ -1674,11 +1683,11 @@
     }
 
     function bindForms() {
-        var loginForm = el('adminLoginForm');
-        var passwordResetForm = el('passwordResetForm');
+        var loginForm = el('adminLoginForm') || el('employeeLoginForm');
+        var passwordResetForm = el('passwordResetForm') || el('employeePasswordResetForm');
         var compoundForm = el('compoundForm');
-        var propertyForm = el('adminPropertyForm');
-        var scheduleForm = el('scheduleForm');
+        var propertyForm = el('adminPropertyForm') || el('propertyForm');
+        var scheduleForm = el('scheduleForm') || el('scheduleVisitForm');
         var employeeForm = el('employeeForm');
         var chatSendButton = el('chatSendButton');
         var chatInput = el('chatReplyInput');
@@ -1781,6 +1790,11 @@
     window.completeOtpPasswordReset = submitNewPassword;
     window.switchAdminTab = switchTab;
     window.adminLogout = logoutAdmin;
+    window.closePropertyModal = closeAddPropertyModal;
+    window.openPropertyModal = openAddPropertyModal;
+    window.openEmployeeModal = openAddEmployeeModal;
+    window.saveProperty = saveAdminProperty;
+    window.saveVisitSchedule = confirmSchedule;
     window.refreshAdminData = function () {
         loadDashboardData();
         loadCompounds();
@@ -1800,12 +1814,14 @@
                 return;
             }
         }
+        notify('المجمع "' + name + '" غير موجود في قاعدة البيانات', true);
     };
     window.resetCompoundForm = function () {
         resetForm('compoundForm');
+        setInputValue('compoundId', '');
     };
     window.deleteSelectedCompound = function () {
-        var editId = getTrimmedValue('compoundEditId');
+        var editId = getTrimmedValue('compoundId');
         if (editId) {
             deleteCompound(editId);
         }
