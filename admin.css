@@ -101,6 +101,9 @@ body { font-family: var(--font); background: var(--bg-main); color: var(--text-p
 .btn-action.complete { background: #c6f6d5; color: #276749; }
 .btn-action.reset { background: #e9d8fd; color: #6b46c1; }
 .btn-action.whatsapp { background: #c6f6d5; color: #276749; text-decoration: none; }
+.btn-action.replied { background: #bee3f8; color: #2a4365; }
+.btn-action.ignore { background: #edf2f7; color: #4a5568; }
+.btn-action.important { background: #fef3c7; color: #92400e; }
 
 /* Cards Grid */
 .cards-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 18px; }
@@ -117,6 +120,10 @@ body { font-family: var(--font); background: var(--bg-main); color: var(--text-p
 .status-badge.cancelled { background: #fed7d7; color: #c53030; }
 .status-badge.active { background: #c6f6d5; color: #276749; }
 .status-badge.otp_reset { background: #e9d8fd; color: #6b46c1; }
+.status-badge.new, .status-badge.status-new { background: #edf2f7; color: #4a5568; }
+.status-badge.replied, .status-badge.status-replied { background: #bee3f8; color: #2a4365; }
+.status-badge.ignored, .status-badge.status-ignored { background: #fed7d7; color: #c53030; }
+.status-badge.important, .status-badge.status-important { background: #fef3c7; color: #92400e; }
 
 /* Visit Filters */
 .visits-filters, .filter-group { display: flex; gap: 8px; margin-bottom: 18px; flex-wrap: wrap; }

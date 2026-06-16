@@ -7,6 +7,7 @@
     var chatUnsubscribe = null;
     var uploadedImages = [];
     var activeFilters = { type: '', city: '', purpose: '' };
+    var compoundDetailState = null;
 
     document.addEventListener('DOMContentLoaded', function () {
         checkUserSession();
@@ -21,6 +22,21 @@
                 submitProperty();
             });
         }
+
+        var compoundOverlay = document.getElementById('compoundDetailOverlay');
+        if (compoundOverlay) {
+            compoundOverlay.addEventListener('click', function (e) {
+                if (e.target === compoundOverlay) {
+                    closeCompoundDetail();
+                }
+            });
+        }
+
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape') {
+                closeCompoundDetail();
+            }
+        });
     });
 
     // ===== USER AUTH =====
@@ -163,67 +179,246 @@
         });
     }
 
-    window.openCompoundDetail = function (id) {
-        db.collection('compounds').doc(id).get().then(function (doc) {
-            if (!doc.exists) return;
-            var c = doc.data();
-            var content = document.getElementById('compoundModalContent');
-            var images = c.images || ['https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800&h=500&fit=crop'];
+    function renderCompoundDetail() {
+        var content = document.getElementById('compoundDetailContent');
+        var compound;
+        var images;
+        var html;
+        var i;
 
-            var html = '<div class="compound-detail">';
-            html += '<div class="compound-gallery">';
-            images.forEach(function (img, i) {
-                html += '<img src="' + img + '" alt="" class="' + (i === 0 ? 'main-gallery-img' : '') + '">';
-            });
-            html += '</div>';
-            html += '<div class="compound-info">';
-            html += '<h2>' + c.name + '</h2>';
-            html += '<p class="compound-detail-location"><i class="fas fa-map-marker-alt"></i> ' + (c.city || '') + (c.area ? ' - ' + c.area : '') + '</p>';
-            html += '<p class="compound-detail-desc">' + (c.description || '') + '</p>';
-            html += '<div class="compound-highlights">';
-            if (c.totalUnits) html += '<div class="highlight"><i class="fas fa-building"></i><span>' + c.totalUnits + '</span><label>وحدة سكنية</label></div>';
-            if (c.startingPrice) html += '<div class="highlight"><i class="fas fa-tag"></i><span>' + formatPrice(c.startingPrice) + '</span><label>يبدأ من</label></div>';
-            if (c.completionDate) html += '<div class="highlight"><i class="fas fa-calendar"></i><span>' + c.completionDate + '</span><label>تاريخ التسليم</label></div>';
-            html += '</div>';
-            if (c.amenities && c.amenities.length > 0) {
-                html += '<div class="compound-amenities"><h4>المرافق والخدمات</h4><div class="amenities-grid">';
-                c.amenities.forEach(function (a) { html += '<span class="amenity-tag"><i class="fas fa-check"></i> ' + a + '</span>'; });
-                html += '</div></div>';
+        if (!compoundDetailState || !content) {
+            return;
+        }
+
+        compound = compoundDetailState.compound || {};
+        images = compound.images && compound.images.length ? compound.images.slice(0, 4) : [];
+        if (!images.length) {
+            images.push('https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=1200&h=700&fit=crop');
+        }
+        while (images.length < 4) {
+            images.push(images[images.length - 1]);
+        }
+
+        html = '';
+        html += '<div class="compound-hero-gallery">';
+        for (i = 0; i < images.length; i++) {
+            html += '<img src="' + images[i] + '" alt="' + escapeHtml(compound.name || 'مجمع سكني') + '">';
+        }
+        html += '</div>';
+        html += '<div class="compound-info-grid">';
+        html += '<div>';
+        html += '<h1>' + escapeHtml(compound.name || 'مجمع سكني') + '</h1>';
+        html += '<p class="compound-detail-location"><i class="fas fa-map-marker-alt"></i> ' + escapeHtml((compound.city || '') + (compound.area ? ' - ' + compound.area : '')) + '</p>';
+        html += '<p class="compound-detail-desc">' + escapeHtml(compound.description || compound.shortDescription || 'تفاصيل المشروع ستتوفر قريباً.') + '</p>';
+        html += '<div class="compound-stats">';
+        if (compound.totalUnits) {
+            html += '<div class="compound-stat"><span class="compound-stat-value">' + escapeHtml(compound.totalUnits) + '</span><span class="compound-stat-label">إجمالي الوحدات</span></div>';
+        }
+        if (compound.startingPrice) {
+            html += '<div class="compound-stat"><span class="compound-stat-value">' + escapeHtml(formatPrice(compound.startingPrice)) + '</span><span class="compound-stat-label">سعر البداية</span></div>';
+        }
+        if (compound.completionDate) {
+            html += '<div class="compound-stat"><span class="compound-stat-value">' + escapeHtml(compound.completionDate) + '</span><span class="compound-stat-label">موعد التسليم</span></div>';
+        }
+        if (compoundDetailState.properties.length) {
+            html += '<div class="compound-stat"><span class="compound-stat-value">' + escapeHtml(compoundDetailState.properties.length) + '</span><span class="compound-stat-label">وحدة متاحة</span></div>';
+        }
+        html += '</div>';
+        if (compound.amenities && compound.amenities.length) {
+            html += '<div class="compound-amenities">';
+            for (i = 0; i < compound.amenities.length; i++) {
+                html += '<span class="compound-amenity">' + escapeHtml(compound.amenities[i]) + '</span>';
             }
-            html += '<div class="compound-actions">';
-            html += '<button class="btn-request-visit" onclick="requestCompoundVisit(\'' + id + '\',\'' + c.name + '\')"><i class="fas fa-calendar-check"></i> طلب زيارة للمشروع</button>';
-            html += '<button class="btn-whatsapp" onclick="window.open(\'https://wa.me/972569236758?text=' + encodeURIComponent('أود الاستفسار عن مشروع ' + c.name) + '\',\'_blank\')"><i class="fab fa-whatsapp"></i> واتساب</button>';
-            html += '</div></div>';
-
-            // Units in this compound
-            html += '<div class="compound-units"><h3>الوحدات المتاحة في ' + c.name + '</h3><div class="compound-units-grid" id="compoundUnits_' + id + '"></div></div>';
             html += '</div>';
+        }
+        html += '</div>';
+        html += '<div class="compound-sidebar-card">';
+        html += '<h3>معلومات سريعة</h3>';
+        html += '<ul class="compound-quick-list">';
+        html += '<li><strong>المدينة:</strong> ' + escapeHtml(compound.city || '-') + '</li>';
+        html += '<li><strong>المنطقة:</strong> ' + escapeHtml(compound.area || '-') + '</li>';
+        html += '<li><strong>الوحدات المتاحة:</strong> ' + escapeHtml(compoundDetailState.properties.length || 0) + '</li>';
+        html += '<li><strong>سعر البداية:</strong> ' + escapeHtml(compound.startingPrice ? formatPrice(compound.startingPrice) : 'حسب الطلب') + '</li>';
+        html += '</ul>';
+        html += '<div class="compound-actions">';
+        html += '<button type="button" class="btn-request-visit" onclick="closeCompoundDetail();requestCompoundVisit(\'' + escapeJsString(compound.id) + '\',\'' + escapeJsString(compound.name || 'المشروع') + '\')"><i class="fas fa-calendar-check"></i> طلب زيارة</button>';
+        html += '<button type="button" class="btn-whatsapp" onclick="whatsappCompound(\'' + escapeJsString(compound.name || 'المشروع') + '\')"><i class="fab fa-whatsapp"></i> واتساب</button>';
+        html += '</div>';
+        html += '</div>';
+        html += '</div>';
+        html += '<div class="compound-properties-section">';
+        html += '<div class="compound-properties-header"><h2>العقارات المتاحة داخل المشروع</h2><span id="compoundPropertiesSummary" class="compound-properties-summary"></span></div>';
+        html += '<div class="compound-filter-bar">';
+        html += '<select id="compoundBedroomsFilter"><option value="">كل الغرف</option><option value="1">1 غرفة</option><option value="2">2 غرف</option><option value="3">3 غرف</option><option value="4">4 غرف</option><option value="5">5+ غرف</option></select>';
+        html += '<select id="compoundPriceFilter"><option value="">كل الأسعار</option><option value="0-250000">أقل من 250,000 ₪</option><option value="250000-400000">250,000 - 400,000 ₪</option><option value="400000-600000">400,000 - 600,000 ₪</option><option value="600000-99999999">أكثر من 600,000 ₪</option></select>';
+        html += '<select id="compoundSizeFilter"><option value="">كل المساحات</option><option value="0-120">أقل من 120 م²</option><option value="120-160">120 - 160 م²</option><option value="160-220">160 - 220 م²</option><option value="220-99999">أكثر من 220 م²</option></select>';
+        html += '</div>';
+        html += '<div class="compound-properties-grid" id="compoundPropertiesGrid"></div>';
+        html += '</div>';
 
-            content.innerHTML = html;
-            document.getElementById('compoundModal').classList.remove('hidden');
+        content.innerHTML = html;
+        bindCompoundDetailFilters();
+        applyCompoundPropertyFilters();
+    }
 
-            // Load units
-            db.collection('properties').where('compound', '==', id).where('status', '==', 'approved').get().then(function (snap) {
-                var grid = document.getElementById('compoundUnits_' + id);
-                if (!grid) return;
-                if (snap.empty) { grid.innerHTML = '<p style="text-align:center;color:#718096">لا توجد وحدات متاحة حالياً</p>'; return; }
-                var unitsHtml = '';
-                snap.forEach(function (d) {
-                    var p = d.data();
-                    var img = (p.images && p.images[0]) || 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=400&h=300&fit=crop';
-                    unitsHtml += '<div class="mini-property-card" onclick="closeCompoundModal();openPropertyDetail(\'' + d.id + '\')">';
-                    unitsHtml += '<img src="' + img + '" alt=""><div class="mini-card-info">';
-                    unitsHtml += '<h4>' + (p.title || 'وحدة') + '</h4>';
-                    unitsHtml += '<span>' + formatPrice(p.price) + (p.purpose === 'إيجار' ? (p.rentPeriod === 'سنوي' ? ' /سنوي' : ' /شهري') : '') + '</span>';
-                    if (p.size) unitsHtml += '<span class="mini-size">' + p.size + ' م²</span>';
-                    unitsHtml += '</div></div>';
+    function bindCompoundDetailFilters() {
+        var filterIds = ['compoundBedroomsFilter', 'compoundPriceFilter', 'compoundSizeFilter'];
+        var i;
+        var node;
+        for (i = 0; i < filterIds.length; i++) {
+            node = document.getElementById(filterIds[i]);
+            if (node) {
+                node.onchange = applyCompoundPropertyFilters;
+            }
+        }
+    }
+
+    function renderCompoundPropertyCards() {
+        var grid = document.getElementById('compoundPropertiesGrid');
+        var summary = document.getElementById('compoundPropertiesSummary');
+        var html = '';
+        var properties;
+        var i;
+        var buttons;
+
+        if (!compoundDetailState || !grid) {
+            return;
+        }
+
+        properties = compoundDetailState.filteredProperties || [];
+        if (summary) {
+            summary.textContent = properties.length + ' عقار';
+        }
+
+        if (!properties.length) {
+            grid.innerHTML = '<div class="compound-empty">لا توجد وحدات مطابقة للفلاتر الحالية.</div>';
+            return;
+        }
+
+        for (i = 0; i < properties.length; i++) {
+            var property = properties[i];
+            var image = property.images && property.images.length ? property.images[0] : 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=400&h=300&fit=crop';
+            html += '<div class="compound-property-card">';
+            html += '<div class="compound-property-image"><img src="' + image + '" alt="' + escapeHtml(property.title || 'عقار') + '"></div>';
+            html += '<div class="compound-property-body">';
+            html += '<div class="compound-property-top">';
+            html += '<h3>' + escapeHtml(property.title || 'وحدة متاحة') + '</h3>';
+            html += '<span class="compound-property-price">' + escapeHtml(propertyPriceText(property)) + '</span>';
+            html += '</div>';
+            html += '<p class="compound-property-location"><i class="fas fa-map-marker-alt"></i> ' + escapeHtml((property.city || '') + (property.area ? ' - ' + property.area : '')) + '</p>';
+            html += '<div class="compound-property-meta">';
+            if (property.size) html += '<span><i class="fas fa-ruler-combined"></i> ' + escapeHtml(property.size) + ' م²</span>';
+            if (property.bedrooms) html += '<span><i class="fas fa-bed"></i> ' + escapeHtml(property.bedrooms) + ' غرف</span>';
+            if (property.bathrooms) html += '<span><i class="fas fa-bath"></i> ' + escapeHtml(property.bathrooms) + ' حمام</span>';
+            html += '</div>';
+            html += '<button type="button" class="btn-request-visit compound-visit-btn" data-property-id="' + escapeHtml(property.id) + '">طلب زيارة</button>';
+            html += '</div>';
+            html += '</div>';
+        }
+
+        grid.innerHTML = html;
+        buttons = grid.querySelectorAll('.compound-visit-btn');
+        for (i = 0; i < buttons.length; i++) {
+            buttons[i].onclick = function () {
+                var propertyId = this.getAttribute('data-property-id');
+                closeCompoundDetail();
+                requestVisit(propertyId);
+            };
+        }
+    }
+
+    function applyCompoundPropertyFilters() {
+        var bedroomsFilter = document.getElementById('compoundBedroomsFilter');
+        var priceFilter = document.getElementById('compoundPriceFilter');
+        var sizeFilter = document.getElementById('compoundSizeFilter');
+        var filtered = [];
+        var i;
+
+        if (!compoundDetailState) {
+            return;
+        }
+
+        for (i = 0; i < compoundDetailState.properties.length; i++) {
+            var property = compoundDetailState.properties[i];
+            if (bedroomsFilter && bedroomsFilter.value) {
+                var bedrooms = parseInt(bedroomsFilter.value, 10);
+                if (bedrooms === 5 && (property.bedrooms || 0) < 5) {
+                    continue;
+                }
+                if (bedrooms < 5 && (property.bedrooms || 0) !== bedrooms) {
+                    continue;
+                }
+            }
+            if (priceFilter && priceFilter.value) {
+                var priceRange = priceFilter.value.split('-');
+                var priceMin = parseInt(priceRange[0], 10);
+                var priceMax = parseInt(priceRange[1], 10);
+                if ((property.price || 0) < priceMin || (property.price || 0) > priceMax) {
+                    continue;
+                }
+            }
+            if (sizeFilter && sizeFilter.value) {
+                var sizeRange = sizeFilter.value.split('-');
+                var sizeMin = parseInt(sizeRange[0], 10);
+                var sizeMax = parseInt(sizeRange[1], 10);
+                if ((property.size || 0) < sizeMin || (property.size || 0) > sizeMax) {
+                    continue;
+                }
+            }
+            filtered.push(property);
+        }
+
+        compoundDetailState.filteredProperties = filtered;
+        renderCompoundPropertyCards();
+    }
+
+    window.openCompoundDetail = function (id) {
+        var overlay = document.getElementById('compoundDetailOverlay');
+        var content = document.getElementById('compoundDetailContent');
+        if (!overlay || !content) {
+            return;
+        }
+
+        overlay.classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+        overlay.scrollTop = 0;
+        content.innerHTML = '<div class="compound-loading"><i class="fas fa-spinner fa-spin"></i> جاري تحميل تفاصيل المشروع...</div>';
+
+        db.collection('compounds').doc(id).get().then(function (doc) {
+            if (!doc.exists) {
+                throw new Error('compound-not-found');
+            }
+            var compound = doc.data() || {};
+            compound.id = doc.id;
+            return db.collection('properties').where('compound', '==', id).where('status', '==', 'approved').get().then(function (snap) {
+                var properties = [];
+                snap.forEach(function (propertyDoc) {
+                    var property = propertyDoc.data() || {};
+                    property.id = propertyDoc.id;
+                    properties.push(property);
                 });
-                grid.innerHTML = unitsHtml;
+                compoundDetailState = {
+                    compound: compound,
+                    properties: properties,
+                    filteredProperties: properties.slice(0)
+                };
+                renderCompoundDetail();
             });
+        }).catch(function () {
+            content.innerHTML = '<div class="compound-empty">تعذر تحميل تفاصيل المشروع حالياً.</div>';
+            showToast('تعذر تحميل تفاصيل المشروع');
         });
     };
 
-    window.closeCompoundModal = function () { document.getElementById('compoundModal').classList.add('hidden'); };
+    window.closeCompoundDetail = function () {
+        var overlay = document.getElementById('compoundDetailOverlay');
+        if (overlay) {
+            overlay.classList.add('hidden');
+        }
+        document.body.style.overflow = '';
+    };
+
+    window.closeCompoundModal = window.closeCompoundDetail;
 
     window.requestCompoundVisit = function (compoundId, compoundName) {
         document.getElementById('visitPropertyId').value = compoundId;
@@ -246,7 +441,13 @@
 
         db.collection('properties').where('status', '==', 'approved').onSnapshot(function (snap) {
             allProperties = [];
-            snap.forEach(function (doc) { var d = doc.data(); d.id = doc.id; allProperties.push(d); });
+            snap.forEach(function (doc) {
+                var d = doc.data();
+                d.id = doc.id;
+                if (!d.compound) {
+                    allProperties.push(d);
+                }
+            });
             if (spinner) spinner.classList.add('hidden');
             document.getElementById('statProperties').textContent = allProperties.length;
             applyFiltersAndSort();
@@ -344,8 +545,25 @@
     }
 
     // ===== PROPERTY DETAIL =====
+    function findPropertyById(id) {
+        var i;
+        for (i = 0; i < allProperties.length; i++) {
+            if (allProperties[i].id === id) {
+                return allProperties[i];
+            }
+        }
+        if (compoundDetailState && compoundDetailState.properties) {
+            for (i = 0; i < compoundDetailState.properties.length; i++) {
+                if (compoundDetailState.properties[i].id === id) {
+                    return compoundDetailState.properties[i];
+                }
+            }
+        }
+        return null;
+    }
+
     window.openPropertyDetail = function (id) {
-        var property = allProperties.find(function (p) { return p.id === id; });
+        var property = findPropertyById(id);
         if (!property) return;
         var content = document.getElementById('propertyModalContent');
         var images = property.images || ['https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=600&h=400&fit=crop'];
@@ -379,7 +597,7 @@
     window.closePropertyModal = function () { document.getElementById('propertyModal').classList.add('hidden'); };
 
     window.requestVisit = function (propertyId) {
-        var property = allProperties.find(function (p) { return p.id === propertyId; });
+        var property = findPropertyById(propertyId);
         document.getElementById('visitPropertyId').value = propertyId;
         document.getElementById('visitPropertyTitle').value = property ? property.title : '';
         // Show/hide guest fields based on login
@@ -434,8 +652,13 @@
     };
 
     window.whatsappProperty = function (propertyId) {
-        var property = allProperties.find(function (p) { return p.id === propertyId; });
+        var property = findPropertyById(propertyId);
         var msg = 'مرحباً، أود الاستفسار عن العقار: ' + (property ? property.title : '') + ' في ' + (property ? property.city : '');
+        window.open('https://wa.me/972569236758?text=' + encodeURIComponent(msg), '_blank');
+    };
+
+    window.whatsappCompound = function (compoundName) {
+        var msg = 'مرحباً، أود الاستفسار عن مشروع ' + (compoundName || '');
         window.open('https://wa.me/972569236758?text=' + encodeURIComponent(msg), '_blank');
     };
 
@@ -627,6 +850,14 @@
         return (h < 10 ? '0' + h : h) + ':' + (m < 10 ? '0' + m : m);
     }
     function escapeHtml(str) { var d = document.createElement('div'); d.textContent = str; return d.innerHTML; }
+    function escapeJsString(str) { return String(str == null ? '' : str).replace(/\\/g, '\\\\').replace(/'/g, "\\'"); }
+    function propertyPriceText(property) {
+        var text = formatPrice(property.price);
+        if (property && property.purpose === 'إيجار') {
+            text += property.rentPeriod === 'سنوي' ? ' /سنوي' : ' /شهري';
+        }
+        return text;
+    }
     function simpleHash(str) {
         var hash = 0;
         for (var i = 0; i < str.length; i++) { var c = str.charCodeAt(i); hash = ((hash << 5) - hash) + c; hash = hash & hash; }

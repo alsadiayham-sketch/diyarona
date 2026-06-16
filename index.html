@@ -117,11 +117,10 @@
         </div>
     </section>
 
-    <!-- Compound Detail Modal (full-page feel) -->
-    <div class="modal-overlay hidden" id="compoundModal">
-        <div class="modal compound-modal">
-            <button class="modal-close" onclick="closeCompoundModal()">&times;</button>
-            <div id="compoundModalContent"></div>
+    <div id="compoundDetailOverlay" class="compound-detail-overlay hidden">
+        <div class="compound-detail-page">
+            <button class="compound-detail-close" onclick="closeCompoundDetail()"><i class="fas fa-times"></i></button>
+            <div id="compoundDetailContent"></div>
         </div>
     </div>
 

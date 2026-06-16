@@ -1955,7 +1955,7 @@
             return;
         }
         if (!contactMessagesCache.length) {
-            body.innerHTML = '<tr><td colspan="5">لا توجد رسائل تواصل</td></tr>';
+            body.innerHTML = '<tr><td colspan="8">لا توجد رسائل تواصل</td></tr>';
             return;
         }
         for (i = 0; i < contactMessagesCache.length; i++) {
@@ -1964,11 +1964,52 @@
             html += '<td>' + escapeHtml(item.name || '-') + '</td>';
             html += '<td>' + escapeHtml(item.phone || '-') + '</td>';
             html += '<td>' + escapeHtml(item.email || '-') + '</td>';
+            html += '<td>' + escapeHtml(item.subject || item.topic || '-') + '</td>';
             html += '<td>' + escapeHtml(item.message || '-') + '</td>';
+            html += '<td><span class="status-badge status-' + escapeHtml(contactStatusClass(item.status)) + '">' + escapeHtml(contactStatusLabel(item.status)) + '</span></td>';
             html += '<td>' + escapeHtml(formatDateTime(item.createdAt)) + '</td>';
+            html += '<td>';
+            html += '<button type="button" class="btn-action replied" onclick="updateContactStatus(\'' + escapeJsString(item.id) + '\', \'replied\')"><i class="fa-solid fa-reply"></i> تم الرد</button> ';
+            html += '<button type="button" class="btn-action ignore" onclick="updateContactStatus(\'' + escapeJsString(item.id) + '\', \'ignored\')"><i class="fa-solid fa-eye-slash"></i> تجاهل</button> ';
+            html += '<button type="button" class="btn-action important" onclick="updateContactStatus(\'' + escapeJsString(item.id) + '\', \'important\')"><i class="fa-solid fa-star"></i> مهم</button>';
+            html += '</td>';
             html += '</tr>';
         }
         body.innerHTML = html;
+    }
+
+    function contactStatusLabel(status) {
+        if (!status || status === 'new') {
+            return 'جديدة';
+        }
+        if (status === 'replied') {
+            return 'تم الرد';
+        }
+        if (status === 'ignored') {
+            return 'تم التجاهل';
+        }
+        if (status === 'important') {
+            return 'مهم';
+        }
+        return status;
+    }
+
+    function contactStatusClass(status) {
+        if (!status || status === 'new') {
+            return 'new';
+        }
+        return status;
+    }
+
+    function updateContactStatus(id, status) {
+        db.collection('contact_messages').doc(id).set({
+            status: status,
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        }, { merge: true }).then(function () {
+            notify('تم تحديث الحالة');
+        }).catch(function (error) {
+            handleError('تعذر تحديث الحالة', error);
+        });
     }
 
     function loadContacts() {
@@ -2422,6 +2463,7 @@
     window.openChatConversation = openChatConversation;
     window.sendEmployeeMessage = sendEmployeeMessage;
     window.loadContacts = loadContacts;
+    window.updateContactStatus = updateContactStatus;
     window.loadEmployees = loadEmployees;
     window.openAddEmployeeModal = openAddEmployeeModal;
     window.closeEmployeeModal = closeEmployeeModal;
