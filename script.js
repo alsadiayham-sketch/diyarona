@@ -163,7 +163,7 @@
                 var coverImg = (c.images && c.images[0]) || 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800&h=500&fit=crop';
                 var slugMap = {'النخيل':'alnakheel','الأرز':'alarz','الليمون':'allaymoun'};
                 var slug = slugMap[c.name] || doc.id;
-                html += '<div class="compound-card" onclick="window.location.href=\'/'+slug+'\'">';
+                html += '<div class="compound-card" onclick="window.location.href=\'compound.html?slug='+slug+'\'">';
                 html += '<div class="compound-card-image"><img src="' + coverImg + '" alt="' + c.name + '"><div class="compound-card-overlay"></div>';
                 html += '<div class="compound-card-badge"><i class="fas fa-crown"></i> مشروع ديارنا</div></div>';
                 html += '<div class="compound-card-content">';

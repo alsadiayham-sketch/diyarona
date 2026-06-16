@@ -133,6 +133,34 @@
             <!-- Sort & Filter Bar -->
             <div class="sort-bar">
                 <div class="filter-options">
+                    <select id="filterType" onchange="applySort()">
+                        <option value="">نوع العقار</option>
+                        <option value="شقة">شقة</option>
+                        <option value="فيلا">فيلا</option>
+                        <option value="أرض">أرض</option>
+                        <option value="مكتب">مكتب</option>
+                        <option value="محل تجاري">محل تجاري</option>
+                        <option value="عمارة">عمارة</option>
+                        <option value="بيت مستقل">بيت مستقل</option>
+                    </select>
+                    <select id="filterCity" onchange="applySort()">
+                        <option value="">كل المدن</option>
+                        <option value="نابلس">نابلس</option>
+                        <option value="رام الله">رام الله</option>
+                        <option value="الخليل">الخليل</option>
+                        <option value="جنين">جنين</option>
+                        <option value="طولكرم">طولكرم</option>
+                        <option value="بيت لحم">بيت لحم</option>
+                        <option value="أريحا">أريحا</option>
+                        <option value="قلقيلية">قلقيلية</option>
+                        <option value="طوباس">طوباس</option>
+                        <option value="سلفيت">سلفيت</option>
+                    </select>
+                    <select id="filterPurpose" onchange="applySort()">
+                        <option value="">بيع وإيجار</option>
+                        <option value="sale">بيع</option>
+                        <option value="rent">إيجار</option>
+                    </select>
                     <select id="filterPrice" onchange="applySort()">
                         <option value="">كل الأسعار</option>
                         <optgroup label="بيع">
