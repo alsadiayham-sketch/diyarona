@@ -275,9 +275,9 @@
     }
 
     function showScreen(screen) {
-        showElement(el('loginScreen'), screen === 'login');
-        showElement(el('passwordResetScreen'), screen === 'reset');
-        showElement(el('adminApp'), screen === 'app');
+        showElement(el('employeeLoginScreen'), screen === 'login');
+        showElement(el('employeePasswordResetScreen'), screen === 'reset');
+        showElement(el('adminPanel'), screen === 'app');
     }
 
     function saveSession(session) {
@@ -396,7 +396,7 @@
         var i;
         for (i = 0; i < contents.length; i++) {
             var contentTab = contents[i].getAttribute('data-tab-content') || contents[i].id;
-            var visible = contentTab === tab || contents[i].id === tab + 'Tab';
+            var visible = contentTab === tab || contents[i].id === tab + 'Tab' || contents[i].id === 'tab-' + tab;
             showElement(contents[i], visible);
             if (contents[i].classList) {
                 if (visible) {
@@ -470,9 +470,9 @@
             if (data.status === 'otp_reset') {
                 pendingPasswordReset = data;
                 setText(['passwordResetName', 'passwordResetEmployeeName'], data.name || data.username || '');
-                setInputValue('resetOtp', '');
-                setInputValue('resetNewPassword', '');
-                setInputValue('resetConfirmPassword', '');
+                    setInputValue('employeeOtp', '');
+                    setInputValue('employeeNewPassword', '');
+                    setInputValue('employeeConfirmPassword', '');
                 showScreen('reset');
                 notify('يجب تعيين كلمة مرور جديدة لهذا الحساب');
                 return;
@@ -506,9 +506,9 @@
             showScreen('login');
             return;
         }
-        otp = getTrimmedValue('resetOtp');
-        newPassword = getTrimmedValue('resetNewPassword');
-        confirmPassword = getTrimmedValue('resetConfirmPassword');
+        otp = getTrimmedValue('employeeOtp');
+        newPassword = getTrimmedValue('employeeNewPassword');
+        confirmPassword = getTrimmedValue('employeeConfirmPassword');
         if (!otp || !newPassword || !confirmPassword) {
             notify('يرجى إكمال جميع الحقول', true);
             return;
@@ -1775,6 +1775,41 @@
     window.loadUsers = loadUsers;
     window.resetUserPassword = resetUserPassword;
     window.removeUser = removeUser;
+
+    // Aliases for HTML onclick/onsubmit references
+    window.adminLogin = loginAdmin;
+    window.completeOtpPasswordReset = submitNewPassword;
+    window.switchAdminTab = switchTab;
+    window.adminLogout = logoutAdmin;
+    window.refreshAdminData = function () {
+        loadDashboardData();
+        loadCompounds();
+        loadApprovedProperties();
+        loadPendingProperties();
+        loadVisitRequests();
+        loadChats();
+        loadContacts();
+        loadEmployees();
+        loadUsers();
+    };
+    window.editCompoundByName = function (name) {
+        var i;
+        for (i = 0; i < compoundsCache.length; i++) {
+            if (compoundsCache[i].name === name) {
+                editCompound(compoundsCache[i].id);
+                return;
+            }
+        }
+    };
+    window.resetCompoundForm = function () {
+        resetForm('compoundForm');
+    };
+    window.deleteSelectedCompound = function () {
+        var editId = getTrimmedValue('compoundEditId');
+        if (editId) {
+            deleteCompound(editId);
+        }
+    };
 
     document.addEventListener('DOMContentLoaded', init);
 })();
